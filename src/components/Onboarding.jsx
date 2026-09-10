@@ -4,6 +4,8 @@ import { LEVELS, TRAINING_PLACES } from '../data';
 import { FITNESS_GOALS, getSuggestedWeekPlan } from '../goals';
 import GoalPicker, { GoalApproach, SuggestedWeekPreview } from './GoalPicker';
 import './Onboarding.css';
+import GenderPicker from './GenderPicker';
+import { normalizeGender } from '../profile';
 
 const LEVEL_NOTES = {
   beginner: 'A fresh start',
@@ -13,6 +15,7 @@ const LEVEL_NOTES = {
 
 export default function Onboarding({ onComplete, saving = false, error = null }) {
   const [name, setName] = useState('');
+  const [gender, setGender] = useState('');
   const [trainingPlace, setTrainingPlace] = useState('');
   const [level, setLevel] = useState('');
   const [goal, setGoal] = useState('');
@@ -43,6 +46,7 @@ export default function Onboarding({ onComplete, saving = false, error = null })
     const cleanName = name.trim();
     if (!cleanName) nextErrors.name = 'Enter the name you’d like us to use.';
     else if (cleanName.length > 60) nextErrors.name = 'Keep your name to 60 characters or fewer.';
+    if (!normalizeGender(gender)) nextErrors.gender = 'Choose a gender or Prefer not to say.';
     if (!TRAINING_PLACES.some((place) => place.id === trainingPlace)) nextErrors.trainingPlace = 'Choose where you’d like to train.';
     if (!LEVELS.some((item) => item.id === level)) nextErrors.level = 'Choose the level that feels right for you.';
     if (!FITNESS_GOALS.some((item) => item.id === fitnessGoal)) nextErrors.fitnessGoal = 'Choose your main fitness goal to continue.';
@@ -64,7 +68,7 @@ export default function Onboarding({ onComplete, saving = false, error = null })
     setSubmitError('');
     try {
       await onComplete({
-        profile: { name: cleanName, goal: numericGoal, fitnessGoal, createdAt: new Date().toISOString() },
+        profile: { name: cleanName, gender, goal: numericGoal, fitnessGoal, createdAt: new Date().toISOString() },
         level,
         trainingPlace,
         initialWeight: weight,
@@ -78,8 +82,8 @@ export default function Onboarding({ onComplete, saving = false, error = null })
   }
 
   const saveError = submitError || (typeof error === 'string' ? error : error?.message);
-  const readyForPreview = FITNESS_GOALS.some((item) => item.id === fitnessGoal) && LEVELS.some((item) => item.id === level) && TRAINING_PLACES.some((item) => item.id === trainingPlace) && Number.isInteger(Number(goal)) && Number(goal) >= 1 && Number(goal) <= 7;
-  const preview = readyForPreview ? getSuggestedWeekPlan({ fitnessGoal, level, trainingPlace, weeklyGoal: Number(goal) }) : null;
+  const readyForPreview = Boolean(normalizeGender(gender)) && FITNESS_GOALS.some((item) => item.id === fitnessGoal) && LEVELS.some((item) => item.id === level) && TRAINING_PLACES.some((item) => item.id === trainingPlace) && Number.isInteger(Number(goal)) && Number(goal) >= 1 && Number(goal) <= 7;
+  const preview = readyForPreview ? getSuggestedWeekPlan({ fitnessGoal, gender, level, trainingPlace, weeklyGoal: Number(goal) }) : null;
 
   return (
     <main className="onboarding-page">
@@ -116,6 +120,8 @@ export default function Onboarding({ onComplete, saving = false, error = null })
               <input id="onboarding-name" name="name" type="text" autoComplete="off" placeholder="Your name" value={name} maxLength={60} required disabled={busy} onChange={(event) => updateField('name', event.target.value, setName)} aria-invalid={Boolean(errors.name)} aria-describedby={errors.name ? 'onboarding-name-error' : undefined} />
               {errors.name && <p className="onboarding-field-error" id="onboarding-name-error">{errors.name}</p>}
             </div>
+
+            <GenderPicker value={gender} onChange={(value) => updateField('gender', value, setGender)} disabled={busy} error={errors.gender} />
 
             <fieldset className="onboarding-choice-field" disabled={busy}>
               <legend>Where will you train?</legend>

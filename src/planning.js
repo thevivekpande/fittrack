@@ -34,17 +34,17 @@ export function updatePlanExercises(plan, chosen, exercises = chosen) {
   };
 }
 
-export function resolveWeekPlans({ level, trainingPlace, fitnessGoal, weeklyGoal, weeklyPlans = {}, customPlans = {}, dates = getWeekDates() }) {
+export function resolveWeekPlans({ level, trainingPlace, fitnessGoal, weeklyGoal, gender, weeklyPlans = {}, customPlans = {}, dates = getWeekDates() }) {
   const scope = `${trainingPlace}:${level}`;
-  const template = weeklyPlans[scope] || getSuggestedWeekPlan({ fitnessGoal, level, trainingPlace, weeklyGoal });
+  const template = weeklyPlans[scope] || getSuggestedWeekPlan({ fitnessGoal, level, trainingPlace, weeklyGoal, gender });
   return template.map((plan, index) => {
     const resolved = { ...plan, ...customPlans[`${scope}:${dateKey(dates[index])}`] };
     return { ...resolved, exerciseIds: [...resolved.exerciseIds], ...(resolved.muscleGroups && { muscleGroups: [...resolved.muscleGroups] }) };
   });
 }
 
-export function updateTrainingGoal(state, { fitnessGoal, weeklyGoal, applySuggestion = false, trainingPlace, level }) {
-  let updated = { ...state, profile: { ...state.profile, fitnessGoal, goal: weeklyGoal } };
+export function updateTrainingGoal(state, { fitnessGoal, weeklyGoal, gender, applySuggestion = false, trainingPlace, level }) {
+  let updated = { ...state, profile: { ...state.profile, fitnessGoal, goal: weeklyGoal, ...(gender !== undefined && { gender }) } };
   if (applySuggestion) {
     updated = applyWeeklySplit(updated, { trainingPlace, level, plans: [] });
     const nextWeekly = { ...updated.weeklyPlans };

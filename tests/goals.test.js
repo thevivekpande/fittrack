@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { EXERCISES, LEVELS, MUSCLE_GROUPS, getWeekPlan } from '../src/data.js';
 import { FITNESS_GOALS, getSuggestedWeekPlan } from '../src/goals.js';
+import { GENDERS } from '../src/profile.js';
 
 const exerciseMap = new Map(EXERCISES.map((exercise) => [exercise.id, exercise]));
 const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -137,4 +138,66 @@ test('invalid optional settings fall back to a bounded beginner gym suggestion',
   assert.equal(week.filter((plan) => !plan.rest).length, 3);
   assert.ok(week.filter((plan) => !plan.rest).every((plan) => plan.sets === 2));
   assert.deepEqual(getSuggestedWeekPlan({ fitnessGoal: 'general-fitness', level: 'beginner', trainingPlace: 'gym', weeklyGoal: '3' }), week);
+});
+
+test('gender variations preserve experience, training days, equipment, and muscle balance for every goal', () => {
+  const selectedGenders = GENDERS.map(({ id }) => id).filter((id) => id !== 'prefer-not-to-say');
+  const groupCounts = (plan) => plan.exerciseIds.reduce((counts, id) => {
+    const group = exerciseMap.get(id).group;
+    counts[group] = (counts[group] || 0) + 1;
+    return counts;
+  }, {});
+  for (const fitnessGoal of goalIds) {
+    for (const { id: level } of LEVELS) {
+      for (const trainingPlace of ['home', 'gym']) {
+        for (let weeklyGoal = 1; weeklyGoal <= 7; weeklyGoal += 1) {
+          const input = { fitnessGoal, level, trainingPlace, weeklyGoal };
+          const baseline = getSuggestedWeekPlan(input);
+          const variants = selectedGenders.map((gender) => getSuggestedWeekPlan({ ...input, gender }));
+          const signatures = variants.map((week) => JSON.stringify(week.map(({ exerciseIds }) => exerciseIds)));
+          assert.equal(new Set(signatures).size, selectedGenders.length, `${fitnessGoal}/${level}/${trainingPlace}/${weeklyGoal}: distinct deterministic variations`);
+          for (const [genderIndex, week] of variants.entries()) {
+            const gender = selectedGenders[genderIndex];
+            assert.deepEqual(getSuggestedWeekPlan({ ...input, gender }), week);
+            assert.equal(week.filter((plan) => !plan.rest).length, weeklyGoal);
+            for (const [dayIndex, plan] of week.entries()) {
+              const base = baseline[dayIndex];
+              assert.equal(plan.gender, gender);
+              for (const key of ['day', 'sets', 'reps', 'rest', 'intensity', 'fitnessGoal', 'title']) assert.equal(plan[key], base[key]);
+              assert.equal(plan.exerciseIds.length, base.exerciseIds.length);
+              assert.equal(new Set(plan.exerciseIds).size, plan.exerciseIds.length);
+              assert.deepEqual(groupCounts(plan), groupCounts(base));
+              assert.ok(plan.exerciseIds.every((id) => exerciseMap.get(id)?.places.includes(trainingPlace)));
+              assert.equal('weight' in plan || 'calorieTarget' in plan || 'history' in plan || 'completed' in plan, false);
+              if (plan.rest) assert.deepEqual(plan.exerciseIds, base.exerciseIds);
+              if (level === 'beginner') {
+                assert.ok(!plan.exerciseIds.includes('barbell-back-squat') && !plan.exerciseIds.includes('barbell-bench-press'));
+                assert.ok(!plan.exerciseIds.includes('single-leg-glute-bridge') && !plan.exerciseIds.includes('lying-leg-raise'));
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+});
+
+test('unknown, missing, and declined gender selections preserve the baseline exactly', () => {
+  for (const gender of [undefined, null, '', 'unknown', 'new-gender-id', 'prefer-not-to-say']) {
+    for (const fitnessGoal of goalIds) {
+      for (const trainingPlace of ['home', 'gym']) {
+        const input = { fitnessGoal, level: 'medium', trainingPlace, weeklyGoal: 4 };
+        assert.deepEqual(getSuggestedWeekPlan({ ...input, gender }), getSuggestedWeekPlan(input));
+        assert.ok(getSuggestedWeekPlan({ ...input, gender }).every((plan) => !('gender' in plan)));
+      }
+    }
+  }
+  for (const gender of [...GENDERS.map(({ id }) => id), 'new-gender-id']) {
+    for (const { id: level } of LEVELS) {
+      for (const trainingPlace of ['home', 'gym']) {
+        assert.deepEqual(getSuggestedWeekPlan({ gender, level, trainingPlace }), getWeekPlan(level, trainingPlace));
+        assert.deepEqual(getSuggestedWeekPlan({ fitnessGoal: 'new-goal-id', gender, level, trainingPlace }), getWeekPlan(level, trainingPlace));
+      }
+    }
+  }
 });

@@ -286,3 +286,14 @@ test('fitness goal migration leaves existing users unselected and retains their 
   const invalid=normalizeWorkspace({...existing,profile:{...existing.profile,fitnessGoal:'invented-goal'}});
   assert.equal(invalid.profile.fitnessGoal,null);assert.equal(invalid.history.length,1);
 });
+
+test('gender is never guessed for existing profiles and supported selections persist without affecting history',()=>{
+  const initial={...createEmptyWorkspace(),profile:{name:'Pat',goal:3,fitnessGoal:'build-muscle'},history:[sessionRecord()]};
+  assert.equal(normalizeWorkspace(initial).profile.gender,null);
+  for(const gender of ['woman','man','nonbinary','prefer-not-to-say']){
+    const result=normalizeWorkspace({...initial,profile:{...initial.profile,gender}});
+    assert.equal(result.profile.gender,gender);assert.equal(result.history.length,1);
+  }
+  const unknown=normalizeWorkspace({...initial,profile:{...initial.profile,gender:'unrecognized'}});
+  assert.equal(unknown.profile.gender,null);assert.equal(unknown.profile.name,'Pat');assert.equal(unknown.history.length,1);
+});

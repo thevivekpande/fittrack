@@ -1,0 +1,36 @@
+.mobile-access { display: none; }
+@media (min-width: 1024px) and (pointer: fine) {
+  .mobile-access { display: block; position: fixed; right: 22px; bottom: 20px; z-index: 35; width: 244px; color: #315340; background: #fff; border: 1px solid #dce5d6; border-radius: 13px; box-shadow: 0 5px 24px #203e2917; }
+  .mobile-access.is-expanded { width: 184px; box-shadow: 0 12px 38px #203e2926; }
+  .mobile-access-header { display: flex; align-items: center; gap: 2px; padding: 5px; }
+  .mobile-access-toggle { display: flex; align-items: center; gap: 9px; flex: 1; min-width: 0; min-height: 42px; padding: 3px; border-radius: 8px; text-align: left; font-size: 12px; font-weight: 600; color: #47613c; }
+  .mobile-access-toggle:hover { background: #f7f9f2; }
+  .mobile-access.is-expanded .mobile-access-toggle { gap: 6px; font-size: 11px; line-height: 1.5; }
+  .mobile-access.is-expanded .mobile-access-icon { width: 26px; height: 31px; }
+  .mobile-access-icon { display: grid; place-items: center; width: 33px; height: 33px; border-radius: 8px; background: #edf3e6; color: #698550; flex-shrink: 0; }
+  .mobile-access-dismiss { display: grid; place-items: center; width: 29px; min-height: 36px; border-radius: 7px; color: #89957d; }
+  .mobile-access-dismiss:hover { color: #355237; background: #f0f4e9; }
+  .mobile-access-content { padding: 0 12px 13px; border-top: 1px solid #eff2e9; max-height: calc(100dvh - 105px); overflow-y: auto; }
+  .mobile-access-qr { margin: 8px auto 0; width: 144px; height: 144px; max-width: 100%; }
+  .mobile-access-qr img { display: block; max-width: 100%; height: auto; }
+  .mobile-access-qr-loading { display: grid; place-items: center; height: 100%; text-align: center; font-size: 12px; line-height: 1.7; padding: 20px; color: #7e906d; }
+  .mobile-access-instruction { text-align: center; font-size: 12px; line-height: 1.6; color: #546d45; margin-top: -2px; }
+  .mobile-access-network { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 6px; font-size: 10px; line-height: 1.6; color: #879477; }
+  .mobile-access-network-choice { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 7px; margin-top: 13px; font-size: 10px; color: #7c8b6e; }
+  .mobile-access-network-choice select { min-width: 0; max-width: 132px; min-height: 33px; border: 1px solid #dde6d3; border-radius: 5px; padding: 4px; font-size: 11px; background: #fff; color: #597244; }
+  .mobile-access-link { display: flex; align-items: center; margin-top: 13px; border: 1px solid #e2e8dc; border-radius: 6px; background: #f9fbf6; }
+  .mobile-access-link input { min-width: 0; width: 100%; padding: 9px 8px; border: 0; border-radius: 5px; background: transparent; font-size: 10px; color: #819170; }
+  .mobile-access-link button { display: grid; place-items: center; flex-shrink: 0; width: 36px; min-height: 36px; color: #6e8857; border-radius: 5px; }
+  .mobile-access-link button:hover { background: #eaf1e1; }
+  .mobile-access-copy-status { display: block; min-height: 5px; font-size: 10px; line-height: 1.65; color: #799365; text-align: center; }
+  .mobile-access-copy-status:not(:empty) { padding-top: 6px; }
+  .mobile-access-privacy { font-size: 10px; text-align: center; line-height: 1.7; color: #89967b; margin-top: 9px; }
+  .mobile-access-placeholder { min-height: 153px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: #8d9d7d; font-size: 12px; }
+  .mobile-access-fallback { text-align: center; padding: 24px 2px 6px; color: #839876; }
+  .mobile-access-fallback > strong { display: block; margin-top: 13px; font-size: 12px; color: #627951; }
+  .mobile-access-fallback > p { font-size: 12px; line-height: 1.8; margin-top: 8px; }
+  .mobile-access-fallback > small { display: block; margin-top: 10px; font-size: 10px; line-height: 1.7; color: #9aa48e; }
+  .mobile-access-spinner { animation: mobile-access-spin 1s linear infinite; }
+}
+@keyframes mobile-access-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .mobile-access-spinner { animation: none; } }

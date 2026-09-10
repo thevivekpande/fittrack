@@ -4,3 +4,5 @@ export function matchesExercise(exercise, query) {
   const aliases = exercise.group === 'Core' ? 'abs abdominal abdominals stomach core' : '';
   return `${exercise.name} ${exercise.group} ${exercise.equipment} ${aliases}`.toLowerCase().includes(query.trim().toLowerCase());
 }
+
+export const exerciseUnit = exercise => ['plank', 'sideplank'].includes(exercise.movement) ? 'sec' : 'reps';

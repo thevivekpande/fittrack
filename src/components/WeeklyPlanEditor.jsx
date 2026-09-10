@@ -187,6 +187,7 @@ export default function WeeklyPlanEditor({ plans, exercises, trainingPlace, leve
       </section>
     </div>
 
+    <p className="weekly-timed-note">For plank holds, the reps value is the number of seconds to hold.</p>
     {saveError && <p className="weekly-save-error" role="alert">{saveError}</p>}
     <div className="weekly-editor-footer"><div><p><Repeat2 size={13} /><span>Repeats every week. Saving replaces individual day edits from this week onward.</span></p>{invalidCount > 0 ? <button className="weekly-review-error" type="button" onClick={() => selectDay(firstInvalidDay, true)} disabled={saving}>{invalidCount} day{invalidCount === 1 ? '' : 's'} need{invalidCount === 1 ? 's' : ''} attention · Review {FULL_DAYS[firstInvalidDay]} <ArrowRight size={12} /></button> : <span className="weekly-ready"><CheckCheck size={12} />All seven days are ready.</span>}</div><div className="weekly-editor-actions"><button className="weekly-cancel" type="button" onClick={onCancel} disabled={saving}>Cancel</button><button className="weekly-save" type="submit" disabled={saving || invalidCount > 0}>{saving ? <><LoaderCircle size={15} className="weekly-spinner" />Saving…</> : <>Save weekly split <ArrowRight size={15} /></>}</button></div></div>
   </form>;

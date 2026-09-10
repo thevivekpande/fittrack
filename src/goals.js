@@ -1,4 +1,5 @@
 import { EXERCISES, getWeekPlan } from './data.js';
+import { normalizeGender } from './profile.js';
 
 export const FITNESS_GOALS = Object.freeze([
   {
@@ -51,6 +52,51 @@ const ACTIVE_DAYS = {
   7: [0, 1, 2, 3, 4, 5, 6],
 };
 const RECOVERY_IDS = ['standing-reach', 'easy-squat'];
+
+// These are ordinary alternatives within the same muscle group and skill tier.
+// The rotation is a presentation preference, not a physiological recommendation:
+// every gender keeps the same goal, training days, sets, reps, and intensity.
+const COMPARABLE_VARIANTS = [
+  ['bodyweight-squat', 'sumo-squat'],
+  ['reverse-lunge', 'forward-lunge', 'split-squat'],
+  ['incline-push-up', 'knee-push-up'],
+  ['dead-bug', 'bird-dog'],
+  ['goblet-squat', 'dumbbell-sumo-squat'],
+  ['bench-press', 'incline-bench-press'],
+  ['lat-pulldown', 'neutral-grip-lat-pulldown'],
+  ['cable-row', 'wide-grip-cable-row'],
+  ['shoulder-press', 'seated-shoulder-press'],
+  ['hammer-curl', 'seated-hammer-curl'],
+  ['triceps-pushdown', 'rope-triceps-pushdown'],
+  ['walking-lunge', 'dumbbell-reverse-lunge', 'dumbbell-split-squat'],
+];
+const GENDER_ROTATIONS = {
+  woman: [1, 0, 1],
+  man: [0, 1, 1],
+  nonbinary: [1, 1, 0],
+};
+
+function rotateComparableVariants(ids, gender, level, place, dayIndex) {
+  const rotation = GENDER_ROTATIONS[gender];
+  if (!rotation) return ids;
+  const pools = level === 'beginner' ? COMPARABLE_VARIANTS : [...COMPARABLE_VARIANTS, ['push-up', 'wide-push-up']];
+  const originalIds = new Set(ids);
+  const used = new Set();
+  return ids.map((id, slot) => {
+    const pool = pools.find((alternatives) => alternatives.includes(id));
+    if (!pool) { used.add(id); return id; }
+    const shift = rotation[(dayIndex + slot) % rotation.length] + Math.floor(dayIndex / rotation.length);
+    const start = (pool.indexOf(id) + shift) % pool.length;
+    const ordered = [...pool.slice(start), ...pool.slice(0, start)];
+    const candidate = ordered.find((option) => (
+      EXERCISE_MAP.get(option)?.places.includes(place)
+      && !used.has(option)
+      && (option === id || !originalIds.has(option))
+    )) || id;
+    used.add(candidate);
+    return candidate;
+  });
+}
 
 function strengthTemplates(goal, place, level) {
   const push = level === 'beginner' ? 'incline-push-up' : 'push-up';
@@ -121,8 +167,9 @@ function lightTemplates(goal) {
   return templates[goal];
 }
 
-function makePlan({ day, title, ids, place, sets, reps, intensity, fitnessGoal }) {
-  const exerciseIds = [...new Set(ids)].filter((id) => EXERCISE_MAP.get(id)?.places.includes(place));
+function makePlan({ day, title, ids, place, sets, reps, intensity, fitnessGoal, gender, level, dayIndex }) {
+  const variations = intensity === 'recovery' ? ids : rotateComparableVariants(ids, gender, level, place, dayIndex);
+  const exerciseIds = [...new Set(variations)].filter((id) => EXERCISE_MAP.get(id)?.places.includes(place));
   const selected = exerciseIds.map((id) => EXERCISE_MAP.get(id));
   const muscleGroups = [...new Set(selected.map((exercise) => exercise.group))];
   const rest = intensity === 'recovery';
@@ -141,13 +188,16 @@ function makePlan({ day, title, ids, place, sets, reps, intensity, fitnessGoal }
     customTitle: false,
     intensity,
     fitnessGoal,
+    ...(gender ? { gender } : {}),
   };
 }
 
-export function getSuggestedWeekPlan({ fitnessGoal, level, trainingPlace, weeklyGoal } = {}) {
+export function getSuggestedWeekPlan({ fitnessGoal, level, trainingPlace, weeklyGoal, gender } = {}) {
   // An unconfirmed goal must not replace an existing user's suggested routine.
   if (!GOAL_IDS.has(fitnessGoal)) return getWeekPlan(level, trainingPlace);
   const selectedLevel = LEVEL_SETTINGS[level] ? level : 'beginner';
+  const normalizedGender = normalizeGender(gender);
+  const selectedGender = GENDER_ROTATIONS[normalizedGender] ? normalizedGender : null;
   const place = trainingPlace === 'home' ? 'home' : 'gym';
   const settings = LEVEL_SETTINGS[selectedLevel];
   const requestedDays = Number(weeklyGoal);
@@ -162,13 +212,14 @@ export function getSuggestedWeekPlan({ fitnessGoal, level, trainingPlace, weekly
   let strengthIndex = 0;
   let lightIndex = 0;
   return DAYS.map((day, index) => {
-    if (!activeDays.includes(index)) return makePlan({ day, title: 'Rest & recovery', ids: RECOVERY_IDS, place, sets: 1, reps: '6', intensity: 'recovery', fitnessGoal });
+    const variationContext = { gender: selectedGender, level: selectedLevel, dayIndex: index };
+    if (!activeDays.includes(index)) return makePlan({ day, title: 'Rest & recovery', ids: RECOVERY_IDS, place, sets: 1, reps: '6', intensity: 'recovery', fitnessGoal, ...variationContext });
     if (!strengthDays.has(index)) {
       const [title, ids] = light[lightIndex++ % light.length];
-      return makePlan({ day, title, ids, place, sets: selectedLevel === 'beginner' ? 1 : 2, reps: '6–10', intensity: 'light', fitnessGoal });
+      return makePlan({ day, title, ids, place, sets: selectedLevel === 'beginner' ? 1 : 2, reps: '6–10', intensity: 'light', fitnessGoal, ...variationContext });
     }
     const [title, ids] = regular[strengthIndex++];
     const reps = fitnessGoal === 'fat-loss' ? '10–15' : fitnessGoal === 'build-muscle' ? '8–12' : selectedLevel === 'beginner' ? '8–10' : '10–12';
-    return makePlan({ day, title, ids, place, sets: settings.sets, reps, intensity: 'strength', fitnessGoal });
+    return makePlan({ day, title, ids, place, sets: settings.sets, reps, intensity: 'strength', fitnessGoal, ...variationContext });
   });
 }

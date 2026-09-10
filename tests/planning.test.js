@@ -130,3 +130,13 @@ test('changing fitness goals keeps custom plans and progress unless replacement 
   assert.deepEqual(replaced.customPlans,{});assert.equal(replaced.history,state.history);assert.equal(replaced.weights,state.weights);assert.equal(replaced.session,state.session);
   assert.equal(state.profile.fitnessGoal,'fat-loss');
 });
+
+test('gender selection is saved with goals without rewriting custom or unfinished workouts',async()=>{
+  const {updateTrainingGoal}=await import('../src/planning.js');
+  const custom=getWeekPlan('beginner','gym');
+  const state={profile:{name:'Pat',goal:3,gender:null},weeklyPlans:{'gym:beginner':custom},customPlans:{},history:[{id:'logged'}],session:{id:'unfinished',plan:custom[0]}};
+  const saved=updateTrainingGoal(state,{fitnessGoal:'build-muscle',gender:'woman',weeklyGoal:3,trainingPlace:'gym',level:'beginner'});
+  assert.equal(saved.profile.gender,'woman');assert.equal(saved.weeklyPlans,state.weeklyPlans);assert.equal(saved.session,state.session);assert.equal(saved.history,state.history);
+  const noGenderEdit=updateTrainingGoal(saved,{fitnessGoal:'general-fitness',weeklyGoal:4,trainingPlace:'gym',level:'beginner'});
+  assert.equal(noGenderEdit.profile.gender,'woman');
+});

@@ -13,9 +13,9 @@ const { SUPPORTED_MOVEMENTS, getExercisePose, getEquipmentProps, getWeightAttach
 test('catalog separates home and gym equipment and contains no invented activity', () => {
   assert.deepEqual(TRAINING_PLACES.map(({ id }) => id), ['home', 'gym']);
   assert.deepEqual(LEVELS.map(({ label }) => label), ['Beginner', 'Medium', 'Experienced']);
-  assert.equal(EXERCISES.length, 49);
-  assert.equal(getExercisesForPlace('gym').length, 49);
-  assert.equal(getExercisesForPlace('home').length, 20);
+  assert.equal(EXERCISES.length, 67);
+  assert.equal(getExercisesForPlace('gym').length, 67);
+  assert.equal(getExercisesForPlace('home').length, 30);
   assert.ok(getExercisesForPlace('gym').length > getExercisesForPlace('home').length);
   assert.equal(new Set(EXERCISES.map(({ id }) => id)).size, EXERCISES.length);
   for (const exercise of getExercisesForPlace('home')) {
@@ -40,7 +40,7 @@ test('muscle groups distinguish biceps and triceps and support balanced custom s
 test('abs catalog contains seven new playable Core exercises in the correct places', () => {
   const homeCoreIds = ['crunch', 'reverse-crunch', 'dead-bug', 'bicycle-crunch', 'heel-tap', 'mountain-climber'];
   const core = EXERCISES.filter(({ group }) => group === 'Core');
-  assert.equal(core.length, 8);
+  assert.equal(core.length, 12);
   for (const id of [...homeCoreIds, 'cable-crunch']) {
     const exercise = core.find((item) => item.id === id);
     assert.ok(exercise, id);
@@ -49,6 +49,96 @@ test('abs catalog contains seven new playable Core exercises in the correct plac
     if (id !== 'cable-crunch') assert.ok(['Bodyweight', 'Exercise mat'].includes(exercise.equipment));
   }
   assert.ok(core.find(({ id }) => id === 'plank').aliases.includes('abs'));
+});
+
+test('expanded catalog includes supported home regressions, stability, and gym equipment options', () => {
+  const sharedIds = ['knee-push-up', 'wall-push-up', 'chair-squat', 'standing-calf-raise', 'single-leg-glute-bridge', 'bird-dog', 'side-plank', 'lying-leg-raise', 'superman', 'incline-plank'];
+  const gymIds = ['barbell-bench-press', 'barbell-back-squat', 'dumbbell-hip-thrust', 'neutral-grip-lat-pulldown', 'wide-grip-cable-row', 'seated-hammer-curl', 'rope-triceps-pushdown', 'cable-face-pull'];
+  for (const id of sharedIds) {
+    const exercise = EXERCISES.find((item) => item.id === id);
+    assert.ok(exercise, id);
+    assert.deepEqual(exercise.places, ['home', 'gym']);
+    assert.doesNotMatch(exercise.equipment, /dumbbell|barbell|machine/i);
+  }
+  for (const id of gymIds) {
+    const exercise = EXERCISES.find((item) => item.id === id);
+    assert.ok(exercise, id);
+    assert.deepEqual(exercise.places, ['gym']);
+  }
+  assert.equal(EXERCISES.find(({ id }) => id === 'superman').group, 'Back');
+  assert.equal(EXERCISES.find(({ id }) => id === 'bird-dog').group, 'Core');
+});
+
+test('bird dog extends opposite limbs while side plank uses lateral forearm support', () => {
+  const initial = getExercisePose('birddog', 0, 'Exercise mat');
+  const leftLeg = getExercisePose('birddog', 1 / 0.7, 'Exercise mat');
+  const rightLeg = getExercisePose('birddog', 3 / 0.7, 'Exercise mat');
+  assert.ok(leftLeg.leftAnkle[1] > leftLeg.rightAnkle[1] && leftLeg.rightHand[1] > leftLeg.leftHand[1]);
+  assert.ok(rightLeg.rightAnkle[1] > rightLeg.leftAnkle[1] && rightLeg.leftHand[1] > rightLeg.rightHand[1]);
+  assert.deepEqual(leftLeg.hip, initial.hip);
+  assert.deepEqual(rightLeg.shoulder, initial.shoulder);
+  const side = getExercisePose('sideplank', 1, 'Exercise mat');
+  assert.ok(side.leftElbow[1] < 0.15 && side.leftHand[1] < 0.15);
+  assert.ok(side.rightShoulder[1] > side.leftShoulder[1] + 0.5);
+  assert.ok(side.hip[1] > 0.4);
+});
+
+test('leg raise and superman keep the pelvis supported during controlled limb lifts', () => {
+  for (const movement of ['legraise', 'superman']) {
+    const start = getExercisePose(movement, 0, 'Exercise mat');
+    const end = getExercisePose(movement, 1 / 0.7, 'Exercise mat');
+    assert.deepEqual(end.hip, start.hip);
+    assert.ok(end.leftAnkle[1] > start.leftAnkle[1] && end.rightAnkle[1] > start.rightAnkle[1]);
+    if (movement === 'legraise') assert.deepEqual(end.head, start.head);
+    else assert.ok(end.leftHand[1] > start.leftHand[1] && end.leftHand[1] < 0.6);
+  }
+});
+
+test('face pull draws a split rope toward the face without changing the standing stance', () => {
+  const start = getExercisePose('facepull', 0, 'Cable machine');
+  const end = getExercisePose('facepull', 1 / 0.7, 'Cable machine');
+  assert.ok(end.leftHand[2] < start.leftHand[2] && Math.abs(end.leftHand[0]) > Math.abs(start.leftHand[0]));
+  assert.deepEqual(end.hip, start.hip);
+  assert.deepEqual(end.leftAnkle, start.leftAnkle);
+  const props = getEquipmentProps('facepull', end, 'Cable machine', 'Cable face pull');
+  for (const hand of ['leftHand', 'rightHand']) {
+    assert.ok(props.lines.some(({ radius, to }) => radius === 0.025 && JSON.stringify(to) === JSON.stringify(end[hand])));
+  }
+});
+
+test('home adaptations show knee, wall, chair, raised forearm, and one-leg support', () => {
+  const knee = getExercisePose('pushup', 0.5, 'Exercise mat', 'Knee push-up');
+  assert.ok(knee.leftKnee[1] < 0.15 && knee.rightKnee[1] < 0.15);
+  const wall = getExercisePose('pushup', 0.5, 'Stable household support', 'Wall push-up');
+  assert.ok(wall.leftHand[1] > 1.8 && wall.shoulder[1] > 1.8);
+  assert.ok(getEquipmentProps('pushup', wall, 'Stable household support', 'Wall push-up').panels.some(({ points }) => points[0][1] !== points[2][1]));
+  const chair = getExercisePose('squat', 1, 'Stable household support', 'Chair squat');
+  assert.ok(getEquipmentProps('squat', chair, 'Stable household support', 'Chair squat').panels.length > 0);
+  const incline = getExercisePose('plank', 1, 'Stable household support', 'Elevated forearm plank');
+  assert.ok(incline.leftElbow[1] > 0.7 && incline.leftHand[1] > 0.7);
+  const bridge = getExercisePose('bridge', 1, 'Exercise mat', 'Single-leg glute bridge');
+  assert.ok(bridge.rightAnkle[1] > bridge.leftAnkle[1] + 0.8);
+});
+
+test('barbells, hip thrusts, grip changes, and seated curls retain their distinct equipment setup', () => {
+  for (const [movement, equipment, name] of [['benchpress', 'Barbell + bench', 'Barbell bench press'], ['squat', 'Barbell', 'Barbell back squat']]) {
+    const pose = getExercisePose(movement, 1, equipment, name);
+    const weights = getWeightAttachments(movement, pose, equipment, name);
+    assert.equal(weights.length, 1);
+    assert.equal(weights[0].kind, 'barbell');
+  }
+  const hipThrust = getExercisePose('bridge', 1, 'Dumbbell + bench', 'Dumbbell hip thrust');
+  assert.ok(hipThrust.shoulder[1] > 0.6);
+  assert.ok(getEquipmentProps('bridge', hipThrust, 'Dumbbell + bench', 'Dumbbell hip thrust').panels.length > 0);
+  assert.equal(getWeightAttachments('bridge', hipThrust, 'Dumbbell + bench')[0].position[2], hipThrust.hip[2]);
+  const standardPull = getExercisePose('latpulldown', 1, 'Cable machine');
+  const neutralPull = getExercisePose('latpulldown', 1, 'Cable machine', 'Neutral-grip lat pulldown');
+  assert.ok(Math.abs(neutralPull.leftHand[0]) < Math.abs(standardPull.leftHand[0]));
+  const standardRow = getExercisePose('cablerow', 1, 'Cable machine');
+  const wideRow = getExercisePose('cablerow', 1, 'Cable machine', 'Wide-grip seated cable row');
+  assert.ok(Math.abs(wideRow.leftHand[0]) > Math.abs(standardRow.leftHand[0]));
+  const seated = getExercisePose('curl', 1, 'Dumbbells + bench', 'Seated hammer curl');
+  assert.ok(seated.hip[1] < getExercisePose('curl', 1, 'Dumbbells', 'Hammer curl').hip[1]);
 });
 
 test('all six programs have valid, playable weeks within the selected place', () => {

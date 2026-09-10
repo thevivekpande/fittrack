@@ -216,9 +216,81 @@ export const EXERCISES = [
     id: 'cable-crunch', name: 'Kneeling cable crunch', group: 'Core', equipment: 'Cable machine', duration: 5, calories: 24, movement: 'cablecrunch', image: photos.strength,
     instructions: ['Kneel facing a high cable pulley and hold the rope ends beside your head with a light resistance.', 'Keep your hips mostly still and curl your upper torso forward, bringing your ribs toward your pelvis.', 'Return slowly while keeping the rope near your head instead of pulling it down with your arms.'],
   },
+  {
+    id: 'knee-push-up', name: 'Knee push-up', group: 'Chest', equipment: 'Exercise mat', duration: 5, calories: 23, movement: 'pushup', image: photos.training,
+    instructions: ['Place your hands slightly wider than your shoulders and rest your knees on a mat.', 'Keep a straight line from your shoulders to your knees as you lower your chest.', 'Press back up with control, keeping your hips in line with your torso.'],
+  },
+  {
+    id: 'wall-push-up', name: 'Wall push-up', group: 'Chest', equipment: 'Stable household support', duration: 4, calories: 15, movement: 'pushup', image: photos.training,
+    instructions: ['Stand facing a wall and place your palms on it at about shoulder height.', 'Step back a comfortable distance, then bend your elbows to move your chest toward the wall.', 'Press away while keeping your body in a straight line and both feet planted.'],
+  },
+  {
+    id: 'chair-squat', name: 'Chair squat', group: 'Legs', equipment: 'Stable household support', duration: 5, calories: 24, movement: 'squat', image: photos.training,
+    instructions: ['Stand in front of a sturdy chair that cannot slide, with your feet about shoulder-width apart.', 'Move your hips back and bend your knees until you gently touch the seat.', 'Press through your feet to stand without dropping onto the chair or using momentum.'],
+  },
+  {
+    id: 'standing-calf-raise', name: 'Standing calf raise', group: 'Legs', equipment: 'Bodyweight', duration: 4, calories: 17, movement: 'calfraise', image: photos.training,
+    instructions: ['Stand tall with your feet about hip-width apart, close to a stable support if needed for balance.', 'Rise onto the balls of your feet while keeping your knees softly extended.', 'Lower your heels slowly to the floor and pause before the next repetition.'],
+  },
+  {
+    id: 'single-leg-glute-bridge', name: 'Single-leg glute bridge', group: 'Legs', equipment: 'Exercise mat', duration: 5, calories: 25, movement: 'bridge', image: photos.training,
+    instructions: ['Lie on your back with one foot planted, and lift the other leg while keeping your hips level.', 'Press through the planted foot to lift your hips through a comfortable range.', 'Lower slowly, finish the repetitions, and switch sides without twisting your pelvis.'],
+  },
+  {
+    id: 'bird-dog', name: 'Bird dog', group: 'Core', equipment: 'Exercise mat', duration: 5, calories: 20, movement: 'birddog', image: photos.training,
+    instructions: ['Start on your hands and knees with your hands under your shoulders and knees under your hips.', 'Reach one arm forward and the opposite leg backward while keeping your torso steady.', 'Return both limbs to the floor, then switch sides without arching your lower back.'],
+  },
+  {
+    id: 'side-plank', name: 'Side plank', group: 'Core', equipment: 'Exercise mat', duration: 4, calories: 20, movement: 'sideplank', image: photos.training,
+    instructions: ['Lie on one side with your elbow directly beneath your shoulder and your legs extended.', 'Lift your hips to form a steady line through your torso and legs, keeping your neck relaxed.', 'Breathe steadily during a short controlled hold, then lower and switch sides.'],
+  },
+  {
+    id: 'lying-leg-raise', name: 'Lying leg raise', group: 'Core', equipment: 'Exercise mat', duration: 5, calories: 23, movement: 'legraise', image: photos.training,
+    instructions: ['Lie on your back with your arms by your sides and your legs extended upward with soft knees.', 'Lower your legs slowly only as far as you can keep your lower back comfortably supported.', 'Raise your legs with control; bend your knees or shorten the range if needed.'],
+  },
+  {
+    id: 'superman', name: 'Superman', group: 'Back', equipment: 'Exercise mat', duration: 4, calories: 18, movement: 'superman', image: photos.training,
+    instructions: ['Lie face down with your arms reaching forward and your legs extended comfortably.', 'Gently lift your arms and legs a small distance while keeping your gaze toward the mat.', 'Lower with control and avoid forcing your back into a deep arch.'],
+  },
+  {
+    id: 'incline-plank', name: 'Elevated forearm plank', group: 'Core', equipment: 'Stable household support', duration: 4, calories: 16, movement: 'plank', image: photos.training,
+    instructions: ['Rest your forearms on a secure raised surface with your elbows below your shoulders.', 'Step your feet back and hold a straight line from your shoulders to your heels.', 'Breathe steadily and end the hold before your hips sag or your shoulders tense.'],
+  },
+  {
+    id: 'barbell-bench-press', name: 'Barbell bench press', group: 'Chest', equipment: 'Barbell + bench', duration: 6, calories: 35, movement: 'benchpress', image: photos.weights,
+    instructions: ['Lie on a bench with your feet planted and take an even grip on the bar; use appropriate rack safeties or a spotter.', 'Lower the bar toward your chest with your wrists stacked over your elbows.', 'Press upward with control, keeping your shoulders supported on the bench.'],
+  },
+  {
+    id: 'barbell-back-squat', name: 'Barbell back squat', group: 'Legs', equipment: 'Barbell', duration: 7, calories: 42, movement: 'squat', image: photos.weights,
+    instructions: ['Set the rack safeties, position the bar across your upper back, and stand with a comfortable stance.', 'Brace your torso and bend your hips and knees through a controlled, comfortable range.', 'Press through your feet to stand while keeping the bar balanced over your stance.'],
+  },
+  {
+    id: 'dumbbell-hip-thrust', name: 'Dumbbell hip thrust', group: 'Legs', equipment: 'Dumbbell + bench', duration: 6, calories: 29, movement: 'bridge', image: photos.weights,
+    instructions: ['Rest your upper back against a stable bench and hold a padded dumbbell securely across your hips.', 'Plant your feet and raise your hips until your torso is roughly level, keeping your ribs relaxed.', 'Lower with control without letting the weight roll or arching your lower back.'],
+  },
+  {
+    id: 'neutral-grip-lat-pulldown', name: 'Neutral-grip lat pulldown', group: 'Back', equipment: 'Cable machine', duration: 6, calories: 32, movement: 'latpulldown', image: photos.strength,
+    instructions: ['Sit with your thighs supported and hold the parallel handles with your palms facing each other.', 'Pull the handles toward your upper chest while keeping your torso steady.', 'Let your arms extend upward slowly without shrugging or leaning far backward.'],
+  },
+  {
+    id: 'wide-grip-cable-row', name: 'Wide-grip seated cable row', group: 'Back', equipment: 'Cable machine', duration: 6, calories: 33, movement: 'cablerow', image: photos.strength,
+    instructions: ['Sit tall with your feet supported and hold a wide cable handle with an even grip.', 'Draw the handle toward your lower chest, keeping your elbows comfortably out from your sides.', 'Extend your arms slowly while keeping your torso still instead of rocking with the weight.'],
+  },
+  {
+    id: 'seated-hammer-curl', name: 'Seated hammer curl', group: 'Biceps', equipment: 'Dumbbells + bench', duration: 5, calories: 25, movement: 'curl', image: photos.dumbbells,
+    instructions: ['Sit upright with your feet planted and dumbbells at your sides, palms facing inward.', 'Bend your elbows to curl the weights while keeping your upper arms still.', 'Lower slowly without swinging your torso or bending your wrists.'],
+  },
+  {
+    id: 'rope-triceps-pushdown', name: 'Rope triceps pushdown', group: 'Triceps', equipment: 'Cable machine', duration: 5, calories: 24, movement: 'tricepspushdown', image: photos.strength,
+    instructions: ['Face a high cable pulley and hold the rope ends with your elbows close to your sides.', 'Extend your elbows and gently separate the rope ends near your thighs.', 'Return the rope with control while keeping your shoulders and upper arms steady.'],
+  },
+  {
+    id: 'cable-face-pull', name: 'Cable face pull', group: 'Shoulders', equipment: 'Cable machine', duration: 5, calories: 23, movement: 'facepull', image: photos.strength,
+    instructions: ['Set the cable near face height and hold the rope ends with a comfortable stance.', 'Pull the rope toward your face, separating your hands and keeping your elbows comfortably raised.', 'Extend your arms slowly without shrugging your shoulders or leaning backward.'],
+  },
 ].map((exercise) => ({
   ...exercise,
-  places: /dumbbell|machine/i.test(exercise.equipment) ? ['gym'] : ['home', 'gym'],
+  places: /dumbbell|barbell|machine/i.test(exercise.equipment) ? ['gym'] : ['home', 'gym'],
   ...(exercise.group === 'Core' ? { aliases: ['abs', 'abdominals', 'core'] } : {}),
 }));
 

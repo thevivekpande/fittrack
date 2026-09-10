@@ -162,3 +162,5 @@
   .weekly-day-button, .weekly-toggle-track, .weekly-toggle-track::after, .weekly-muscle-option > span { transition: none; }
   .weekly-spinner { animation: none; }
 }
+
+.weekly-timed-note{font-size:11px;color:#839176;line-height:1.7;margin-top:16px}

@@ -3,9 +3,12 @@ import { ArrowRight, Check, LoaderCircle, Target } from 'lucide-react';
 import { FITNESS_GOALS, getSuggestedWeekPlan } from '../goals';
 import GoalPicker, { GoalApproach, SuggestedWeekPreview } from './GoalPicker';
 import './GoalSetup.css';
+import GenderPicker from './GenderPicker';
+import { normalizeGender } from '../profile';
 
 export default function GoalSetup({ profile, trainingPlace, level, hasCustomPlan, onSave, onCancel }) {
   const id = useId();
+  const [gender, setGender] = useState(profile?.gender || '');
   const [fitnessGoal, setFitnessGoal] = useState(profile?.fitnessGoal || '');
   const [weeklyGoal, setWeeklyGoal] = useState(String(profile?.goal ?? ''));
   const [planChoice, setPlanChoice] = useState('keep');
@@ -16,7 +19,7 @@ export default function GoalSetup({ profile, trainingPlace, level, hasCustomPlan
   const formRef = useRef(null);
   const goalValid = FITNESS_GOALS.some((goal) => goal.id === fitnessGoal);
   const weeklyValid = Number.isInteger(Number(weeklyGoal)) && Number(weeklyGoal) >= 1 && Number(weeklyGoal) <= 7;
-  const preview = goalValid && weeklyValid ? getSuggestedWeekPlan({ fitnessGoal, trainingPlace, level, weeklyGoal: Number(weeklyGoal) }) : null;
+  const preview = goalValid && weeklyValid && normalizeGender(gender) ? getSuggestedWeekPlan({ fitnessGoal, gender, trainingPlace, level, weeklyGoal: Number(weeklyGoal) }) : null;
   const applySuggestion = !hasCustomPlan || planChoice === 'suggested';
   const placeLabel = trainingPlace === 'home' ? 'home' : 'gym';
   const levelLabel = level === 'medium' ? 'medium' : level === 'experienced' ? 'experienced' : 'beginner';
@@ -25,6 +28,7 @@ export default function GoalSetup({ profile, trainingPlace, level, hasCustomPlan
     event.preventDefault();
     if (savingRef.current) return;
     const nextErrors = {};
+    if (!normalizeGender(gender)) nextErrors.gender = 'Choose a gender or Prefer not to say.';
     if (!goalValid) nextErrors.fitnessGoal = 'Choose your main fitness goal to continue.';
     if (!weeklyValid) nextErrors.weeklyGoal = 'Choose between 1 and 7 workouts a week.';
     setErrors(nextErrors);
@@ -37,7 +41,7 @@ export default function GoalSetup({ profile, trainingPlace, level, hasCustomPlan
     setSaving(true);
     setSaveError('');
     try {
-      await onSave({ fitnessGoal, weeklyGoal: Number(weeklyGoal), applySuggestion });
+      await onSave({ fitnessGoal, gender, weeklyGoal: Number(weeklyGoal), applySuggestion });
     } catch (error) {
       setSaveError(error?.message || 'Your goal couldn’t be saved. Please try again.');
     } finally {
@@ -48,6 +52,7 @@ export default function GoalSetup({ profile, trainingPlace, level, hasCustomPlan
 
   return <form className="goal-setup" ref={formRef} onSubmit={handleSave} noValidate aria-busy={saving}>
     <div className="goal-setup-intro"><span><Target size={20} /></span><p>Your goal gives your week a direction. Choose your focus and the amount of movement that fits your life.</p></div>
+    <GenderPicker value={gender} onChange={value=>{setGender(value);setErrors(current=>({...current,gender:undefined}));setSaveError('');}} disabled={saving} error={errors.gender}/>
     <GoalPicker value={fitnessGoal} onChange={(value) => { setFitnessGoal(value); setErrors((current) => ({ ...current, fitnessGoal: undefined })); setSaveError(''); }} disabled={saving} error={errors.fitnessGoal} />
     <div className="goal-setup-weekly"><div><label htmlFor={`${id}-weekly`}>Weekly workout target</label><p>Build a rhythm you can return to.</p></div><select id={`${id}-weekly`} name="weeklyGoal" value={weeklyGoal} disabled={saving} required aria-invalid={Boolean(errors.weeklyGoal)} aria-describedby={errors.weeklyGoal ? `${id}-weekly-error` : undefined} onChange={(event) => { setWeeklyGoal(event.target.value); setErrors((current) => ({ ...current, weeklyGoal: undefined })); setSaveError(''); }}><option value="" disabled>Choose your target</option>{[1, 2, 3, 4, 5, 6, 7].map((number) => <option key={number} value={number}>{number} workout{number === 1 ? '' : 's'} per week</option>)}</select></div>
     {errors.weeklyGoal && <p id={`${id}-weekly-error`} className="goal-setup-field-error">{errors.weeklyGoal}</p>}

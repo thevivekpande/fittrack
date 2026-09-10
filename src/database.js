@@ -1,6 +1,7 @@
 import { useEffect, useSyncExternalStore } from 'react';
 import { EXERCISES, LEVELS, MUSCLE_GROUPS } from './data.js';
 import { FITNESS_GOALS } from './goals.js';
+import { normalizeGender } from './profile.js';
 
 const DATABASE_NAME = 'fittrack';
 const STORE_NAME = 'workspace';
@@ -45,7 +46,7 @@ export function createEmptyWorkspace() {
 function validateProfile(value) {
   if (!isObject(value) || !isText(value.name, 80) || !Number.isInteger(value.goal) || value.goal < 1 || value.goal > 7) return null;
   const fitnessGoal = FITNESS_GOALS.some(goal => goal.id === value.fitnessGoal) ? value.fitnessGoal : null;
-  return { ...value, name: value.name.trim(), goal: value.goal, fitnessGoal };
+  return { ...value, name: value.name.trim(), goal: value.goal, fitnessGoal, gender: normalizeGender(value.gender) };
 }
 
 function validateHistory(values) {
