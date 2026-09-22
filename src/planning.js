@@ -1,5 +1,5 @@
 import { dateKey, getWeekDates } from './data.js';
-import { getSuggestedWeekPlan } from './goals.js';
+import { getSuggestedWeekPlan, normalizeRestDays } from './goals.js';
 import { cloneExerciseTargets, getExerciseTarget, normalizeExerciseTargets } from './workoutTargets.js';
 import { estimateTargetSeconds } from './recompositionPlan.js';
 
@@ -66,17 +66,21 @@ export function updatePlanExercises(plan, chosen, exercises = chosen, previousPl
   });
 }
 
-export function resolveWeekPlans({ level, trainingPlace, fitnessGoal, weeklyGoal, gender, weeklyPlans = {}, customPlans = {}, dates = getWeekDates() }) {
+export function resolveWeekPlans({ level, trainingPlace, fitnessGoal, weeklyGoal, gender, restDays, weeklyPlans = {}, customPlans = {}, dates = getWeekDates() }) {
   const scope = `${trainingPlace}:${level}`;
-  const template = weeklyPlans[scope] || getSuggestedWeekPlan({ fitnessGoal, level, trainingPlace, weeklyGoal, gender });
+  const template = weeklyPlans[scope] || getSuggestedWeekPlan({ fitnessGoal, level, trainingPlace, weeklyGoal, gender, restDays });
   return template.map((plan, index) => {
     const resolved = { ...plan, ...customPlans[`${scope}:${dateKey(dates[index])}`] };
     return clonePlanDetails(resolved);
   });
 }
 
-export function updateTrainingGoal(state, { fitnessGoal, weeklyGoal, gender, applySuggestion = false, trainingPlace, level }) {
-  let updated = { ...state, profile: { ...state.profile, fitnessGoal, goal: weeklyGoal, ...(gender !== undefined && { gender }) } };
+export function updateTrainingGoal(state, { fitnessGoal, weeklyGoal, gender, restDays, applySuggestion = false, trainingPlace, level }) {
+  const { restDays: previousRestDays, ...profile } = state.profile || {};
+  const selectedRestDays = normalizeRestDays(restDays === undefined ? previousRestDays : restDays, weeklyGoal);
+  let updated = { ...state, profile: { ...profile, fitnessGoal, goal: weeklyGoal, ...(gender !== undefined && { gender }),
+    ...(selectedRestDays !== null && { restDays: selectedRestDays }),
+  } };
   if (applySuggestion) {
     updated = applyWeeklySplit(updated, { trainingPlace, level, plans: [] });
     const nextWeekly = { ...updated.weeklyPlans };

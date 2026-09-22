@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AlertCircle, ArrowRight, Check, CheckCheck, Clock3, Dumbbell, Leaf, LoaderCircle, Repeat2, Search, X } from 'lucide-react';
 import { MUSCLE_GROUPS } from '../data';
 import { MAX_PLAN_EXERCISES, estimateWorkoutMinutes, hasCustomPlanTitle } from '../planning';
@@ -25,7 +25,7 @@ function validReps(value) {
   return numbers.every((number) => number >= 1 && number <= 30) && (numbers.length === 1 || numbers[1] >= numbers[0]);
 }
 
-export default function WeeklyPlanEditor({ plans, exercises, trainingPlace, level, onSave, onCancel }) {
+export default function WeeklyPlanEditor({ plans, exercises, trainingPlace, level, initialDay = 0, onSave, onCancel }) {
   const eligibleGroups = MUSCLE_GROUPS.filter((group) => exercises.some((exercise) => exerciseGroups(exercise).includes(group)));
   const mobility = exercises.filter((exercise) => exerciseGroups(exercise).includes('Mobility'));
   const recoveryIds = ['standing-reach', 'easy-squat'].filter((id) => mobility.some((exercise) => exercise.id === id));
@@ -46,14 +46,25 @@ export default function WeeklyPlanEditor({ plans, exercises, trainingPlace, leve
       name: plan.programId || hasCustomPlanTitle(plan, exercises) ? plan.title : '',
     };
   }));
-  const [selectedDay, setSelectedDay] = useState(0);
+  const [selectedDay, setSelectedDay] = useState(() => Number.isInteger(initialDay) && initialDay >= 0 && initialDay < 7 ? initialDay : 0);
   const [query, setQuery] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const savingRef = useRef(false);
   const dayHeadingRef = useRef(null);
+  const dayRailRef = useRef(null);
+  const selectedDayButtonRef = useRef(null);
   const current = drafts[selectedDay];
   const currentExercises = current.exerciseIds.map((id) => exercises.find((exercise) => exercise.id === id)).filter(Boolean);
+
+  useEffect(() => {
+    const rail = dayRailRef.current;
+    const button = selectedDayButtonRef.current;
+    if (rail && button && rail.scrollWidth > rail.clientWidth) {
+      const left = rail.scrollLeft + button.getBoundingClientRect().left - rail.getBoundingClientRect().left - (rail.clientWidth - button.clientWidth) / 2;
+      rail.scrollTo({ left: Math.max(0, left), behavior: 'auto' });
+    }
+  }, [selectedDay]);
 
   function draftError(draft) {
     if (draft.rest) return !draft.fullRest && recoveryIds.length < 2 ? 'This plan needs two available mobility exercises for recovery.' : '';
@@ -103,7 +114,7 @@ export default function WeeklyPlanEditor({ plans, exercises, trainingPlace, leve
   const firstInvalidDay = dayErrors.findIndex(Boolean);
   const trainingDays = drafts.filter((day) => !day.rest).length;
   const preview = normalizeDay(current);
-  const availableChoices = exercises.filter((exercise) => current.exerciseIds.includes(exercise.id) || exerciseGroups(exercise).some((group) => current.muscleGroups.includes(group)));
+  const availableChoices = query.trim() ? exercises : exercises.filter((exercise) => current.exerciseIds.includes(exercise.id) || exerciseGroups(exercise).some((group) => current.muscleGroups.includes(group)));
   const matchingExercises = availableChoices.filter((exercise) => matchesExercise(exercise, query));
   const levelLabel = level === 'medium' ? 'medium' : level === 'experienced' ? 'experienced' : 'beginner';
   const placeLabel = trainingPlace === 'home' ? 'home' : 'gym';
@@ -130,7 +141,7 @@ export default function WeeklyPlanEditor({ plans, exercises, trainingPlace, leve
       if (adding) {
         const candidates = exercises.filter((exercise) => exerciseGroups(exercise).includes(group));
         const alreadyChosen = candidates.filter((exercise) => keptIds.includes(exercise.id)).length;
-        candidates.filter((exercise) => !keptIds.includes(exercise.id)).slice(0, Math.max(0, 2 - alreadyChosen)).forEach((exercise) => keptIds.push(exercise.id));
+        candidates.filter((exercise) => !keptIds.includes(exercise.id)).slice(0, Math.max(0, Math.min(2 - alreadyChosen, MAX_PLAN_EXERCISES - keptIds.length))).forEach((exercise) => keptIds.push(exercise.id));
       }
       return { ...draft, muscleGroups: groups, exerciseIds: keptIds };
     });
@@ -139,7 +150,12 @@ export default function WeeklyPlanEditor({ plans, exercises, trainingPlace, leve
   function toggleExercise(id, checked) {
     updateCurrent((draft) => {
       if (checked && (draft.exerciseIds.includes(id) || draft.exerciseIds.length >= MAX_PLAN_EXERCISES)) return draft;
-      return { ...draft, exerciseIds: checked ? [...draft.exerciseIds, id] : draft.exerciseIds.filter((value) => value !== id) };
+      const addedGroups = checked ? exerciseGroups(exercises.find((exercise) => exercise.id === id)) : [];
+      return {
+        ...draft,
+        muscleGroups: checked ? MUSCLE_GROUPS.filter((group) => draft.muscleGroups.includes(group) || addedGroups.includes(group)) : draft.muscleGroups,
+        exerciseIds: checked ? [...draft.exerciseIds, id] : draft.exerciseIds.filter((value) => value !== id),
+      };
     });
   }
 
@@ -170,28 +186,31 @@ export default function WeeklyPlanEditor({ plans, exercises, trainingPlace, leve
   }
 
   return <form className="weekly-editor" onSubmit={handleSave} noValidate aria-busy={saving}>
-    <div className="weekly-editor-intro"><span className="weekly-editor-repeat"><Repeat2 size={19} /></span><div><strong>A week that works for you.</strong><p>Repeats every week for your {placeLabel} {levelLabel} plan.</p></div><span className="weekly-editor-count"><Dumbbell size={13} />{trainingDays} training day{trainingDays === 1 ? '' : 's'}</span></div>
+    <div className="weekly-editor-intro"><span className="weekly-editor-repeat"><Repeat2 size={19} /></span><div><strong>Build your own weekly routine.</strong><p>Pick a day, choose exercises, and set your targets for your {placeLabel} {levelLabel} plan.</p></div><span className="weekly-editor-count"><Dumbbell size={13} />{trainingDays} training · {7 - trainingDays} rest</span></div>
+    <p className="weekly-repeat-notice"><Repeat2 size={15} /><span>Your routine repeats every week until you change it. Choose a rest day whenever you need a break.</span></p>
     <div className="weekly-editor-layout">
-      <nav className="weekly-day-rail" aria-label="Days of your weekly split">
-        {drafts.map((draft, index) => <button key={draft.day} type="button" className={`weekly-day-button${selectedDay === index ? ' is-selected' : ''}${dayErrors[index] ? ' has-error' : ''}`} aria-pressed={selectedDay === index} onClick={() => selectDay(index)} disabled={saving}>
+      <nav className="weekly-day-rail" aria-label="Choose a day to edit your recurring routine" ref={dayRailRef}>
+        {drafts.map((draft, index) => <button key={draft.day} type="button" ref={selectedDay === index ? selectedDayButtonRef : null} className={`weekly-day-button${selectedDay === index ? ' is-selected' : ''}${dayErrors[index] ? ' has-error' : ''}`} aria-pressed={selectedDay === index} onClick={() => selectDay(index)} disabled={saving}>
           <span className="weekly-day-name">{FULL_DAYS[index]}{dayErrors[index] ? <AlertCircle size={12} aria-label="Needs attention" /> : draft.rest ? <Leaf size={12} /> : <span className="weekly-day-dot" />}</span>
-          <span className="weekly-day-focus">{draft.rest ? 'Rest & recovery' : groupTitle(draft.muscleGroups) || 'Choose your focus'}</span>
+          <span className="weekly-day-focus">{draft.rest ? draft.fullRest ? 'Complete rest' : 'Rest & mobility' : groupTitle(draft.muscleGroups) || 'Choose your focus'}</span>
+          {!draft.rest && <span className="weekly-day-detail">{draft.exerciseIds.length} exercise{draft.exerciseIds.length === 1 ? '' : 's'}</span>}
         </button>)}
       </nav>
 
       <section className="weekly-day-form" aria-labelledby="weekly-day-heading">
-        <div className="weekly-day-heading"><div><span className="weekly-editor-eyebrow">YOUR {FULL_DAYS[selectedDay].toUpperCase()} ROUTINE</span><h3 id="weekly-day-heading" tabIndex={-1} ref={dayHeadingRef}>{current.rest ? 'Room to recover.' : 'Choose your focus.'}</h3></div><label className="weekly-rest-toggle"><input type="checkbox" checked={current.rest} disabled={saving} onChange={(event) => toggleRecovery(event.target.checked)} /><span className="weekly-toggle-track" aria-hidden="true" /><span>Rest & recovery</span></label></div>
+        <div className="weekly-day-heading"><div><span className="weekly-editor-eyebrow">EVERY {FULL_DAYS[selectedDay].toUpperCase()}</span><h3 id="weekly-day-heading" tabIndex={-1} ref={dayHeadingRef}>{current.rest ? 'Your day to recover.' : 'Choose your exercises.'}</h3></div><label className="weekly-rest-toggle"><input type="checkbox" checked={current.rest} disabled={saving} onChange={(event) => toggleRecovery(event.target.checked)} aria-label={`Make ${FULL_DAYS[selectedDay]} a rest day`} /><span className="weekly-toggle-track" aria-hidden="true" /><span>Rest day</span></label></div>
 
         {current.rest ? <div className="weekly-recovery-content"><div className="weekly-recovery-symbol"><span /><Leaf size={33} strokeWidth={1.4} /></div><h4>A little pause is part of the plan.</h4><p>{current.fullRest ? `No workout is scheduled on ${FULL_DAYS[selectedDay]}. Take the day off and return refreshed.` : `Keep ${FULL_DAYS[selectedDay]} gentle with a short mobility session.`}</p><label className="weekly-mobility-choice"><input type="checkbox" checked={!current.fullRest} disabled={saving} onChange={event=>updateCurrent(draft=>({...draft,fullRest:!event.target.checked}))}/>Include optional mobility exercises</label>{!current.fullRest&&<><div className="weekly-recovery-exercises">{recoveryIds.map((id) => { const exercise = exercises.find((item) => item.id === id); return <div key={id}><Check size={13} /><span>{exercise?.name}</span><small>1 set · 6 reps</small></div>; })}</div><span className="weekly-recovery-duration"><Clock3 size={13} />About {preview.duration} minutes of easy movement</span></>}</div> : <>
           <fieldset className="weekly-muscle-fieldset" disabled={saving}><legend>Muscle groups</legend><div className="weekly-muscle-options">{eligibleGroups.map((group) => <label className="weekly-muscle-option" key={group}><input type="checkbox" checked={current.muscleGroups.includes(group)} onChange={() => toggleGroup(group)} /><span>{current.muscleGroups.includes(group) && <Check size={11} />}{muscleLabel(group)}</span></label>)}</div>{current.muscleGroups.filter((group) => !eligibleGroups.includes(group)).map((group) => <button key={group} className="weekly-unsupported-group" type="button" onClick={() => toggleGroup(group)}>Remove unavailable {group} <X size={12} /></button>)}</fieldset>
 
           <div className="weekly-exercises-heading"><h4>Choose your exercises <span>{currentExercises.length}/{MAX_PLAN_EXERCISES}</span></h4><span><Clock3 size={12} />About {preview.duration} min</span></div>
-          <p className="weekly-suggestion-note">We suggest up to two exercises per muscle group. Choose up to {MAX_PLAN_EXERCISES} per day; remove a selected exercise to make room.</p>
-          <div className="weekly-exercise-search"><Search size={15} /><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search these exercises…" aria-label={`Search ${FULL_DAYS[selectedDay]} exercises`} disabled={saving || !current.muscleGroups.length} />{query && <button type="button" onClick={() => setQuery('')} aria-label="Clear exercise search"><X size={13} /></button>}</div>
+          <p className="weekly-suggestion-note" id="weekly-exercise-help">Choose muscle groups for suggestions, or search any {placeLabel} exercise below. Check the exercises you want and uncheck any you don’t. Up to {MAX_PLAN_EXERCISES} per day.</p>
+          <div className="weekly-exercise-search"><Search size={15} /><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search all ${placeLabel} exercises…`} aria-label={`Search all ${placeLabel} exercises for ${FULL_DAYS[selectedDay]}`} aria-describedby="weekly-exercise-help" disabled={saving} />{query && <button type="button" onClick={() => setQuery('')} aria-label="Clear exercise search"><X size={13} /></button>}</div>
           <div className="weekly-exercise-options" aria-label={`${FULL_DAYS[selectedDay]} exercise choices`}>
             {matchingExercises.map((exercise) => <label className={`weekly-exercise-option${current.exerciseIds.includes(exercise.id) ? ' is-checked' : ''}`} key={exercise.id}><input type="checkbox" checked={current.exerciseIds.includes(exercise.id)} disabled={saving || (!current.exerciseIds.includes(exercise.id) && current.exerciseIds.length >= MAX_PLAN_EXERCISES)} onChange={(event) => toggleExercise(exercise.id, event.target.checked)} /><span><strong>{exercise.name}</strong><small>{exerciseGroups(exercise).map(muscleLabel).join(', ')} <i>·</i> {exercise.equipment}</small></span><span className="weekly-exercise-duration">{exercise.duration} min</span></label>)}
-            {!matchingExercises.length && <div className="weekly-exercise-empty"><Dumbbell size={20} /><p>{current.muscleGroups.length ? 'No matches. Try another exercise name.' : 'Choose a muscle group to see your exercises.'}</p>{query && <button type="button" onClick={() => setQuery('')}>Clear search</button>}</div>}
+            {!matchingExercises.length && <div className="weekly-exercise-empty"><Dumbbell size={20} /><p>{query ? 'No matches. Try another exercise name or muscle group.' : 'Choose a muscle group above or search for your first exercise.'}</p>{query && <button type="button" onClick={() => setQuery('')}>Clear search</button>}</div>}
           </div>
+          <p className="weekly-selection-note" role="status">{currentExercises.length} exercise{currentExercises.length === 1 ? '' : 's'} selected for every {FULL_DAYS[selectedDay]}.{currentExercises.length >= MAX_PLAN_EXERCISES ? ' Uncheck one to make room for another.' : query ? ' Selecting an exercise also adds its muscle group.' : ' Your choices stay saved in this draft as you switch days.'}</p>
 
           <div className="weekly-workout-fields"><div><label htmlFor="weekly-sets">Default sets per exercise</label><select id="weekly-sets" value={current.sets} disabled={saving} onChange={(event) => updateCurrent((draft) => ({ ...draft, sets: event.target.value }))}><option value="" disabled>Choose sets</option>{[1, 2, 3, 4, 5, 6].map((sets) => <option key={sets} value={sets}>{sets} set{sets === 1 ? '' : 's'}</option>)}</select></div><div><label htmlFor="weekly-reps">Default reps per set</label><input id="weekly-reps" type="text" inputMode="text" value={current.reps} placeholder="e.g. 8–12" maxLength={7} disabled={saving} onChange={(event) => updateCurrent((draft) => ({ ...draft, reps: event.target.value }))} aria-invalid={!validReps(current.reps)} /></div><div className="weekly-name-field"><label htmlFor="weekly-name">Workout name <span>Optional</span></label><input id="weekly-name" type="text" value={current.name} maxLength={70} placeholder={groupTitle(current.muscleGroups) || 'Name your workout'} disabled={saving} onChange={(event) => updateCurrent((draft) => ({ ...draft, name: event.target.value }))} /></div></div>
           <ExerciseTargets plan={current} exercises={currentExercises} disabled={saving} onChange={exerciseTargets=>updateCurrent(draft=>({...draft,exerciseTargets}))}/>
@@ -202,6 +221,6 @@ export default function WeeklyPlanEditor({ plans, exercises, trainingPlace, leve
 
     <p className="weekly-timed-note">For plank holds, default reps represent seconds. Expand individual targets to set different reps, hold times, cardio minutes, and rest periods.</p>
     {saveError && <p className="weekly-save-error" role="alert">{saveError}</p>}
-    <div className="weekly-editor-footer"><div><p><Repeat2 size={13} /><span>Repeats every week. Saving replaces individual day edits from this week onward.</span></p>{invalidCount > 0 ? <button className="weekly-review-error" type="button" onClick={() => selectDay(firstInvalidDay, true)} disabled={saving}>{invalidCount} day{invalidCount === 1 ? '' : 's'} need{invalidCount === 1 ? 's' : ''} attention · Review {FULL_DAYS[firstInvalidDay]} <ArrowRight size={12} /></button> : <span className="weekly-ready"><CheckCheck size={12} />All seven days are ready.</span>}</div><div className="weekly-editor-actions"><button className="weekly-cancel" type="button" onClick={onCancel} disabled={saving}>Cancel</button><button className="weekly-save" type="submit" disabled={saving || invalidCount > 0}>{saving ? <><LoaderCircle size={15} className="weekly-spinner" />Saving…</> : <>Save weekly split <ArrowRight size={15} /></>}</button></div></div>
+    <div className="weekly-editor-footer"><div><p><Repeat2 size={13} /><span>Saves all seven days and repeats every week until you change it. Replaces individual day edits from this week onward.</span></p>{invalidCount > 0 ? <button className="weekly-review-error" type="button" onClick={() => selectDay(firstInvalidDay, true)} disabled={saving}>{invalidCount} day{invalidCount === 1 ? '' : 's'} need{invalidCount === 1 ? 's' : ''} attention · Review {FULL_DAYS[firstInvalidDay]} <ArrowRight size={12} /></button> : <span className="weekly-ready"><CheckCheck size={12} />All seven days are ready, including rest days.</span>}</div><div className="weekly-editor-actions"><button className="weekly-cancel" type="button" onClick={onCancel} disabled={saving}>Cancel</button><button className="weekly-save" type="submit" disabled={saving || invalidCount > 0}>{saving ? <><LoaderCircle size={15} className="weekly-spinner" />Saving…</> : <>Save weekly plan <ArrowRight size={15} /></>}</button></div></div>
   </form>;
 }

@@ -1,6 +1,6 @@
 import { useEffect, useSyncExternalStore } from 'react';
 import { EXERCISES, LEVELS, MUSCLE_GROUPS } from './data.js';
-import { FITNESS_GOALS } from './goals.js';
+import { FITNESS_GOALS, normalizeRestDays } from './goals.js';
 import { normalizeGender } from './profile.js';
 import { getExerciseTarget, normalizeExerciseTargets } from './workoutTargets.js';
 
@@ -47,7 +47,11 @@ export function createEmptyWorkspace() {
 function validateProfile(value) {
   if (!isObject(value) || !isText(value.name, 80) || !Number.isInteger(value.goal) || value.goal < 1 || value.goal > 7) return null;
   const fitnessGoal = FITNESS_GOALS.some(goal => goal.id === value.fitnessGoal) ? value.fitnessGoal : null;
-  return { ...value, name: value.name.trim(), goal: value.goal, fitnessGoal, gender: normalizeGender(value.gender) };
+  const { restDays, ...profile } = value;
+  const selectedRestDays = normalizeRestDays(restDays, value.goal);
+  return { ...profile, name: value.name.trim(), goal: value.goal, fitnessGoal, gender: normalizeGender(value.gender),
+    ...(selectedRestDays !== null && { restDays: selectedRestDays }),
+  };
 }
 
 function validateHistory(values) {

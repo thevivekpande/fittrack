@@ -369,3 +369,35 @@ test('the full six-day source plan reloads with exact day-specific links and tar
     assert.equal(reloaded.session, null);
   }
 });
+
+test('explicit rest weekdays persist as independent sorted profile data without changing actual records', () => {
+  const input = { profile: { name: 'Sam', goal: 3, fitnessGoal: 'build-muscle', restDays: [6, 2, 4, 0] }, history: [sessionRecord()], session: activeSession() };
+  const loaded = normalizeWorkspace(input);
+  assert.deepEqual(loaded.profile.restDays, [0, 2, 4, 6]);
+  assert.deepEqual(normalizeWorkspace(structuredClone(loaded)), loaded);
+  assert.deepEqual(loaded.history, input.history);
+  assert.equal(loaded.session.id, input.session.id);
+  loaded.profile.restDays.push(1);
+  assert.deepEqual(input.profile.restDays, [6, 2, 4, 0]);
+});
+
+test('invalid rest preferences are removed without rejecting a legacy profile or overwriting saved weeks', () => {
+  const profile = { name: 'Sam', goal: 3, fitnessGoal: 'build-muscle' };
+  const weeklyPlans = { 'gym:beginner': weeklyPlan() };
+  for (const restDays of [undefined, null, [6], [0, 0, 2, 4], [-1, 1, 3, 6], [0, 2, 4, 7], ['0', 2, 4, 6]]) {
+    const loaded = normalizeWorkspace({ profile: { ...profile, restDays }, weeklyPlans, history: [sessionRecord()] });
+    assert.equal(Object.hasOwn(loaded.profile, 'restDays'), false);
+    assert.equal(loaded.profile.name, profile.name);
+    assert.deepEqual(loaded.weeklyPlans, weeklyPlans);
+    assert.equal(loaded.history.length, 1);
+  }
+  assert.deepEqual(normalizeWorkspace({ profile: { ...profile, goal: 7, restDays: [] } }).profile.restDays, []);
+});
+
+test('rest-day edits participate in conflict protection rather than overwriting another tab’s schedule', () => {
+  const baseline = normalizeWorkspace({ profile: { name: 'Sam', goal: 6, fitnessGoal: 'body-recomposition', restDays: [6] } });
+  const remote = { ...baseline, profile: { ...baseline.profile, restDays: [2] } };
+  const local = { ...baseline, profile: { ...baseline.profile, restDays: [4] } };
+  assert.equal(resolveWorkspaceWrite(remote, baseline, local).conflict, true);
+  assert.deepEqual(resolveWorkspaceWrite(remote, baseline, recordVisit(baseline, '2026-09-23T10:00:00Z')).data.profile.restDays, [2]);
+});

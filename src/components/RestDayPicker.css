@@ -1,0 +1,33 @@
+.rest-day-picker { min-width: 0; padding: 16px; margin: 0; border: 1px solid #e0e8d6; border-radius: 10px; background: #f8faf3; }
+.rest-day-picker > legend { display: flex; align-items: center; gap: 7px; padding: 0 7px; margin-left: -7px; color: #526847; font-size: 13px; font-weight: 650; }
+.rest-day-picker > legend svg { color: #7b9567; }
+.rest-day-picker-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 13px; }
+.rest-day-picker-heading p { color: #77896a; font-size: 12px; line-height: 1.7; }
+.rest-day-picker-heading > span { flex-shrink: 0; border-radius: 5px; padding: 4px 7px; color: #8a785e; background: #f2ecdf; font-size: 11px; font-weight: 650; white-space: nowrap; }
+.rest-day-picker-heading > span.is-complete { color: #537344; background: #e9f0dd; }
+.rest-day-options { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 7px; }
+.rest-day-option { position: relative; min-width: 0; cursor: pointer; }
+.rest-day-option > input { position: absolute; width: 1px; height: 1px; margin: 0; opacity: 0; }
+.rest-day-option > span { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; min-height: 60px; padding: 9px 4px; border: 1px solid #dce5cf; border-radius: 7px; background: #fff; color: #7c8b6e; transition: background 150ms ease, border-color 150ms ease; }
+.rest-day-option strong { font-size: 12px; line-height: 1.4; font-weight: 600; }
+.rest-day-mark { display: grid; place-items: center; width: 15px; height: 15px; border: 1px solid #d5dfc6; border-radius: 50%; color: transparent; }
+.rest-day-option:hover > span { border-color: #99b27e; }
+.rest-day-option > input:checked + span { background: #e9f0df; border-color: #7b9a60; color: #395d35; }
+.rest-day-option > input:checked + span .rest-day-mark { background: #6f8d53; border-color: #6f8d53; color: #fff; }
+.rest-day-option > input:focus-visible + span { outline: 3px solid #edb182; outline-offset: 3px; }
+.rest-day-picker:disabled .rest-day-option { opacity: .65; cursor: wait; }
+.rest-day-status, .rest-day-context, .rest-day-error { font-size: 11px; line-height: 1.7; margin-top: 10px; }
+.rest-day-status { color: #7b8d6c; }
+.rest-day-context { border-top: 1px solid #e2e9d8; padding-top: 10px; color: #7c896f; }
+.rest-day-error { color: #a15f43; }
+.rest-day-picker.has-error { border-color: #cb9f80; }
+.rest-day-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+@media (max-width: 560px) {
+  .rest-day-picker { padding: 12px; }
+  .rest-day-options { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .rest-day-option > span { min-height: 54px; flex-direction: row; gap: 7px; }
+  .rest-day-picker-heading { gap: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rest-day-option > span { transition: none; }
+}

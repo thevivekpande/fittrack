@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { EXERCISES, getWeekPlan, dateKey } from '../src/data.js';
-import { resolveWeekPlans, applyWeeklySplit, estimateWorkoutMinutes, updatePlanExercises } from '../src/planning.js';
+import { resolveWeekPlans, applyWeeklySplit, estimateWorkoutMinutes, updatePlanExercises, updateTrainingGoal } from '../src/planning.js';
 import { getRecompositionWeekPlan } from '../src/recompositionPlan.js';
 
 const dates = Array.from({length:7},(_,index)=>new Date(2026,8,7+index,12));
@@ -225,4 +225,44 @@ test('partial target duration combines fractional timed work and catalogue work 
   const plank = EXERCISES.find(exercise => exercise.id === 'plank');
   const targets = { plank: { sets: 1, reps: '10', unit: 'sec', restSeconds: 0 } };
   assert.equal(estimateWorkoutMinutes([curl, plank], 2, false, targets), 5, '3⅓ catalogue minutes + 1⅙ targeted minutes = 4½, rounded up once');
+});
+
+test('chosen rest weekdays repeat in future weeks while dated edits remain limited to one occurrence', () => {
+  const options = { fitnessGoal: 'general-fitness', level: 'beginner', trainingPlace: 'home', weeklyGoal: 3, restDays: [0, 2, 4, 5] };
+  const current = resolveWeekPlans({ ...options, dates });
+  const future = resolveWeekPlans({ ...options, dates: nextDates });
+  assert.deepEqual(future, current);
+  assert.deepEqual(current.flatMap((day, index) => day.rest ? [index] : []), options.restDays);
+  const replacement = { ...current[1], day: 'Mon', title: 'One extra session' };
+  const customPlans = { [`home:beginner:${dateKey(dates[0])}`]: replacement };
+  assert.equal(resolveWeekPlans({ ...options, customPlans, dates })[0].title, replacement.title);
+  assert.equal(resolveWeekPlans({ ...options, customPlans, dates: nextDates })[0].rest, true);
+});
+
+test('rest-day preferences cannot move saved custom weeks or rewrite history and active sessions', () => {
+  const custom = week();
+  const state = { profile: { name: 'Sam', goal: 3, fitnessGoal: 'build-muscle', restDays: [1, 3, 5, 6] }, weeklyPlans: { 'gym:beginner': custom }, customPlans: {}, history: [{ id: 'actual' }], session: { id: 'unfinished', plan: custom[0] } };
+  const updated = updateTrainingGoal(state, { fitnessGoal: 'fat-loss', weeklyGoal: 3, restDays: [6, 4, 2, 0], trainingPlace: 'gym', level: 'beginner' });
+  assert.deepEqual(updated.profile.restDays, [0, 2, 4, 6]);
+  assert.equal(updated.weeklyPlans, state.weeklyPlans);
+  assert.equal(updated.session, state.session);
+  assert.equal(updated.history, state.history);
+  assert.deepEqual(resolveWeekPlans({ fitnessGoal: updated.profile.fitnessGoal, weeklyGoal: 3, restDays: updated.profile.restDays, level: 'beginner', trainingPlace: 'gym', weeklyPlans: updated.weeklyPlans, dates }), custom);
+  assert.deepEqual(resolveWeekPlans({ fitnessGoal: updated.profile.fitnessGoal, weeklyGoal: 3, restDays: updated.profile.restDays, level: 'beginner', trainingPlace: 'gym', weeklyPlans: updated.weeklyPlans, dates: nextDates }), custom);
+  const replaced = updateTrainingGoal(state, { fitnessGoal: 'fat-loss', weeklyGoal: 3, restDays: [0, 2, 4, 6], applySuggestion: true, trainingPlace: 'gym', level: 'beginner' });
+  assert.equal(replaced.weeklyPlans['gym:beginner'], undefined);
+  const suggestion = resolveWeekPlans({ fitnessGoal: replaced.profile.fitnessGoal, weeklyGoal: replaced.profile.goal, restDays: replaced.profile.restDays, level: 'beginner', trainingPlace: 'gym', weeklyPlans: replaced.weeklyPlans, dates });
+  assert.deepEqual(suggestion.flatMap((day, index) => day.rest ? [index] : []), [0, 2, 4, 6]);
+  assert.equal(replaced.session, state.session);
+  assert.equal(replaced.history, state.history);
+});
+
+test('goal updates preserve omitted valid rest choices and drop stale choices after a frequency change', () => {
+  const state = { profile: { name: 'Sam', goal: 3, fitnessGoal: 'build-muscle', restDays: [1, 3, 5, 6] }, weeklyPlans: {}, customPlans: {} };
+  const options = { fitnessGoal: 'fat-loss', weeklyGoal: 3, trainingPlace: 'gym', level: 'beginner' };
+  assert.deepEqual(updateTrainingGoal(state, options).profile.restDays, state.profile.restDays);
+  assert.equal(updateTrainingGoal(state, { ...options, weeklyGoal: 6 }).profile.restDays, undefined);
+  assert.deepEqual(updateTrainingGoal(state, { ...options, weeklyGoal: 6, restDays: [2] }).profile.restDays, [2]);
+  assert.deepEqual(updateTrainingGoal(state, { ...options, weeklyGoal: 7, restDays: [] }).profile.restDays, []);
+  assert.deepEqual(state.profile.restDays, [1, 3, 5, 6]);
 });

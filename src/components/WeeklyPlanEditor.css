@@ -1,9 +1,12 @@
-.weekly-editor { color: #304734; }
-.weekly-editor-intro { display: flex; align-items: center; gap: 12px; margin-bottom: 23px; }
+.weekly-editor { color: #304734; min-width: 0; }
+.weekly-editor-intro { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.weekly-editor-intro > div { min-width: 0; }
 .weekly-editor-repeat { display: grid; place-items: center; height: 39px; width: 39px; border-radius: 11px; background: #edf2e6; color: #738962; flex-shrink: 0; }
 .weekly-editor-intro strong { font-size: 13px; font-weight: 600; }
 .weekly-editor-intro p { margin-top: 5px; color: #7d8972; font-size: 12px; line-height: 1.6; }
 .weekly-editor-count { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; border: 1px solid #e4e9dc; border-radius: 6px; padding: 7px 9px; font-size: 11px; color: #7f8d70; white-space: nowrap; }
+.weekly-repeat-notice { display: flex; align-items: flex-start; gap: 8px; margin: 0 0 23px; padding: 11px 13px; border: 1px solid #e1e9d5; border-radius: 8px; background: #f5f8ee; font-size: 12px; line-height: 1.7; color: #667a56; }
+.weekly-repeat-notice > svg { flex-shrink: 0; margin-top: 3px; }
 .weekly-editor-layout { display: grid; grid-template-columns: 172px minmax(0, 1fr); gap: 27px; align-items: start; }
 .weekly-day-rail { display: flex; flex-direction: column; padding: 5px; border-radius: 10px; background: #f5f7ef; border: 1px solid #e8ecdf; gap: 3px; }
 .weekly-day-button { display: flex; flex-direction: column; gap: 7px; text-align: left; width: 100%; border: 1px solid transparent; border-radius: 7px; padding: 13px 12px; min-height: 72px; transition: background 150ms ease, border-color 150ms ease; }
@@ -15,6 +18,8 @@
 .weekly-day-button.is-selected .weekly-day-name { color: #4f6f3e; }
 .weekly-day-focus { color: #879477; font-size: 11px; line-height: 1.7; }
 .weekly-day-button.is-selected .weekly-day-focus { color: #7c8e6b; }
+.weekly-day-detail { font-size: 11px; color: #6c8159; line-height: 1.4; }
+.weekly-day-button:focus-visible, .weekly-editor-actions button:focus-visible { outline: 3px solid #efb27f; outline-offset: 3px; }
 .weekly-day-dot { width: 5px; height: 5px; border-radius: 50%; background: #a6b893; opacity: 0.7; }
 .weekly-day-button.is-selected .weekly-day-dot { background: #729757; opacity: 1; }
 .weekly-day-form { min-width: 0; padding-top: 3px; }
@@ -22,7 +27,7 @@
 .weekly-editor-eyebrow { font-size: 9px; letter-spacing: 1.3px; color: #97a288; font-weight: 600; }
 .weekly-day-heading h3 { font-size: 21px; font-weight: 650; letter-spacing: -0.7px; margin-top: 6px; line-height: 1.4; }
 .weekly-day-heading h3:focus { outline: 2px solid #c9d9b8; outline-offset: 4px; border-radius: 3px; }
-.weekly-rest-toggle { display: inline-flex; align-items: center; position: relative; gap: 7px; font-size: 11px; color: #7f8d70; cursor: pointer; white-space: nowrap; }
+.weekly-rest-toggle { display: inline-flex; align-items: center; position: relative; gap: 8px; min-height: 44px; padding: 8px 11px; border: 1px solid #e2e9d8; border-radius: 8px; background: #f8faf3; font-size: 12px; color: #6c805b; cursor: pointer; white-space: nowrap; }
 .weekly-rest-toggle > input { position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0; }
 .weekly-toggle-track { position: relative; width: 29px; height: 17px; background: #e6ebde; border-radius: 20px; border: 1px solid #dce5d2; transition: background 150ms ease; }
 .weekly-toggle-track::after { content: ''; position: absolute; top: 2px; left: 2px; width: 11px; height: 11px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px #4261291c; transition: transform 150ms ease; }
@@ -45,6 +50,7 @@
 .weekly-exercises-heading h4 > span { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; border-radius: 5px; background: #edf2e6; color: #809867; font-size: 11px; font-weight: 550; }
 .weekly-exercises-heading > span { display: inline-flex; align-items: center; gap: 4px; color: #96a088; font-size: 11px; }
 .weekly-suggestion-note { font-size: 11px; color: #7d8b70; line-height: 1.7; margin: 7px 0 12px; }
+.weekly-selection-note { font-size: 12px; color: #6d7f5b; line-height: 1.7; margin: 9px 0 0; }
 .weekly-exercise-search { display: flex; align-items: center; gap: 7px; background: #fafbf7; border: 1px solid #e7ebe1; border-radius: 7px 7px 0 0; height: 37px; padding: 0 11px; color: #a1ae93; }
 .weekly-exercise-search input { border: 0; outline: none; width: 100%; min-width: 0; background: transparent; font-size: 13px; color: #61734f; height: 30px; }
 .weekly-exercise-search input:focus { outline: none; }
@@ -52,15 +58,16 @@
 .weekly-exercise-search input::placeholder { color: #8f9e7c; }
 .weekly-exercise-search input::-webkit-search-cancel-button { display: none; }
 .weekly-exercise-search button { padding: 4px; display: flex; color: #8e9d7c; }
-.weekly-exercise-options { max-height: 216px; min-height: 116px; overflow-y: auto; overscroll-behavior: contain; border: 1px solid #e7ebe1; border-top: 0; border-radius: 0 0 7px 7px; scrollbar-width: thin; scrollbar-color: #dce4d1 transparent; }
+.weekly-exercise-options { max-height: 300px; min-height: 116px; overflow-y: auto; overscroll-behavior-y: auto; border: 1px solid #e7ebe1; border-top: 0; border-radius: 0 0 7px 7px; scrollbar-width: thin; scrollbar-color: #dce4d1 transparent; }
 .weekly-exercise-option { display: flex; align-items: center; gap: 10px; padding: 12px; border-bottom: 1px solid #f0f2eb; cursor: pointer; min-height: 61px; }
 .weekly-exercise-option:last-child { border-bottom: 0; }
 .weekly-exercise-option:hover { background: #fafcf6; }
 .weekly-exercise-option.is-checked { background: #f8faf3; }
+.weekly-exercise-option:has(input:disabled):not(.is-checked) { opacity: 0.55; cursor: default; }
 .weekly-exercise-option input { accent-color: #75915b; width: 14px; height: 14px; margin: 0; flex-shrink: 0; cursor: pointer; }
 .weekly-exercise-option input:focus-visible { outline: 3px solid #efb27f; outline-offset: 3px; }
 .weekly-exercise-option > span:nth-child(2) { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
-.weekly-exercise-option strong { font-size: 13px; font-weight: 600; color: #526545; line-height: 1.5; }
+.weekly-exercise-option strong { font-size: 13px; font-weight: 600; color: #526545; line-height: 1.5; overflow-wrap: anywhere; }
 .weekly-exercise-option small { font-size: 11px; color: #839173; line-height: 1.6; }
 .weekly-exercise-option small > i { font-style: normal; margin: 0 3px; }
 .weekly-exercise-duration { margin-left: auto; color: #879675; font-size: 11px; white-space: nowrap; }
@@ -125,21 +132,21 @@
   .weekly-editor-intro p { font-size: 12px; }
   .weekly-editor-count { margin-left: 49px; margin-top: -3px; }
   .weekly-editor-layout { display: block; }
-  .weekly-day-rail { flex-direction: row; overflow-x: auto; scrollbar-width: thin; padding: 5px; gap: 5px; margin-bottom: 22px; scroll-snap-type: x proximity; }
+  .weekly-day-rail { flex-direction: row; max-width: 100%; overflow-x: auto; scrollbar-width: thin; padding: 5px; gap: 5px; margin-bottom: 22px; scroll-snap-type: x proximity; }
   .weekly-day-button { width: 115px; min-width: 115px; min-height: 80px; scroll-snap-align: start; }
   .weekly-day-name { font-size: 13px; }
   .weekly-day-focus { font-size: 11px; }
   .weekly-day-heading { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 19px; }
   .weekly-day-heading h3 { font-size: 20px; }
   .weekly-editor-eyebrow { font-size: 9px; letter-spacing: 1px; }
-  .weekly-rest-toggle { font-size: 11px; gap: 5px; }
+  .weekly-rest-toggle { font-size: 12px; gap: 8px; }
   .weekly-toggle-track { width: 27px; height: 17px; }
   .weekly-toggle-track::after { width: 11px; height: 11px; }
   .weekly-rest-toggle > input:checked + .weekly-toggle-track::after { transform: translateX(10px); }
-  .weekly-muscle-option > span { min-height: 35px; padding: 7px 10px; font-size: 12px; }
-  .weekly-exercise-options { max-height: 250px; }
-  .weekly-exercise-option { min-height: 65px; padding: 12px 10px; }
-  .weekly-exercise-option input { width: 16px; height: 16px; }
+  .weekly-muscle-option > span { min-height: 44px; padding: 9px 11px; font-size: 12px; }
+  .weekly-exercise-options { max-height: 360px; }
+  .weekly-exercise-option { min-height: 72px; padding: 12px 10px; }
+  .weekly-exercise-option input { width: 20px; height: 20px; }
   .weekly-exercise-option strong { font-size: 13px; }
   .weekly-exercise-option small { font-size: 11px; }
   .weekly-workout-fields { gap: 14px 11px; }
@@ -147,10 +154,11 @@
   .weekly-workout-fields label { font-size: 12px; }
   .weekly-exercise-search { height: 42px; }
   .weekly-exercise-search input { font-size: 16px; }
-  .weekly-suggestion-note { font-size: 11px; }
+  .weekly-exercise-search button { min-width: 32px; min-height: 40px; align-items: center; justify-content: center; }
+  .weekly-suggestion-note { font-size: 12px; }
   .weekly-recovery-content { min-height: 385px; }
   .weekly-editor-footer { flex-direction: column; align-items: stretch; gap: 16px; }
-  .weekly-editor-footer p { font-size: 11px; }
+  .weekly-editor-footer p { font-size: 12px; }
   .weekly-ready { font-size: 11px; }
   .weekly-editor-actions { width: 100%; gap: 10px; }
   .weekly-cancel, .weekly-save { min-height: 43px; font-size: 12px; }

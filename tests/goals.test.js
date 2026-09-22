@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { EXERCISES, LEVELS, MUSCLE_GROUPS, getWeekPlan } from '../src/data.js';
-import { FITNESS_GOALS, getSuggestedWeekPlan } from '../src/goals.js';
+import { FITNESS_GOALS, applyRestDaySchedule, getDefaultRestDays, getSuggestedWeekPlan, normalizeRestDays } from '../src/goals.js';
 import { GENDERS } from '../src/profile.js';
 
 const exerciseMap = new Map(EXERCISES.map((exercise) => [exercise.id, exercise]));
@@ -202,4 +202,70 @@ test('unknown, missing, and declined gender selections preserve the baseline exa
       }
     }
   }
+});
+
+test('rest-day validation requires the exact weekly count and leaves legacy inputs unselected', () => {
+  assert.deepEqual(normalizeRestDays([6, 2, 4, 0], 3), [0, 2, 4, 6]);
+  assert.deepEqual(normalizeRestDays([], 7), []);
+  for (const value of [undefined, null, 'Sunday', [6], [0, 0, 2, 4], [-1, 1, 3, 5], [1, 2, 3, 7], ['0', 2, 4, 6], [0, 1, 2, 3.5]]) {
+    assert.equal(normalizeRestDays(value, 3), null);
+  }
+  assert.equal(normalizeRestDays([], 8), null);
+  assert.deepEqual(getDefaultRestDays(6), [6]);
+  assert.deepEqual(getDefaultRestDays(3), [1, 3, 5, 6]);
+  assert.deepEqual(getDefaultRestDays(7), []);
+});
+
+test('every explicit rest-day arrangement schedules complete rest and preserves suggested workout order', () => {
+  for (const fitnessGoal of goalIds) {
+    for (const trainingPlace of ['home', 'gym']) {
+      for (const { id: level } of LEVELS) {
+        for (let mask = 0; mask < 127; mask += 1) {
+          const restDays = Array.from({ length: 7 }, (_, index) => index).filter(index => mask & (1 << index));
+          const weeklyGoal = 7 - restDays.length;
+          const input = { fitnessGoal, trainingPlace, level, weeklyGoal, gender: 'woman' };
+          const original = getSuggestedWeekPlan(input).filter(plan => !plan.rest);
+          const week = getSuggestedWeekPlan({ ...input, restDays });
+          const actualRest = week.flatMap((plan, index) => plan.rest ? [index] : []);
+          assert.deepEqual(actualRest, restDays, `${fitnessGoal}/${trainingPlace}/${level}/${mask}`);
+          assert.deepEqual(week.map(plan => plan.day), days);
+          assert.deepEqual(week.filter(plan => !plan.rest).map((plan, index) => ({ ...plan, day: original[index].day })), original);
+          for (const index of restDays) {
+            assert.deepEqual(week[index].exerciseIds, []);
+            assert.equal(week[index].duration, 0);
+            assert.deepEqual(week[index].muscleGroups, ['Mobility']);
+          }
+          assert.ok(week.every(plan => !('history' in plan) && !('completed' in plan)));
+        }
+      }
+    }
+  }
+});
+
+test('invalid or absent rest choices preserve legacy suggestions and explicit legacy choices remain goal-neutral', () => {
+  const input = { fitnessGoal: 'fat-loss', level: 'beginner', trainingPlace: 'home', weeklyGoal: 3 };
+  const original = getSuggestedWeekPlan(input);
+  for (const restDays of [undefined, null, [6], [1, 1, 3, 5], [0, 2, 4, 7]]) {
+    assert.deepEqual(getSuggestedWeekPlan({ ...input, restDays }), original);
+  }
+  const legacy = { level: 'medium', trainingPlace: 'gym', weeklyGoal: 2 };
+  assert.deepEqual(getSuggestedWeekPlan(legacy), getWeekPlan('medium', 'gym'));
+  const scheduled = getSuggestedWeekPlan({ ...legacy, restDays: [0, 1, 2, 4, 5] });
+  assert.deepEqual(scheduled.flatMap((plan, index) => plan.rest ? [] : [index]), [3, 6]);
+  assert.ok(scheduled.every(plan => plan.fitnessGoal === undefined));
+});
+
+test('rescheduling the sheet preserves edited targets, day-specific source links, and input ownership', () => {
+  const original = getSuggestedWeekPlan({ fitnessGoal: 'body-recomposition', level: 'medium', trainingPlace: 'gym', weeklyGoal: 6 });
+  original[0].exerciseTargets['chest-press-machine'].sets = 5;
+  const before = structuredClone(original);
+  const scheduled = applyRestDaySchedule(original, [2]);
+  assert.equal(scheduled[2].rest, true);
+  assert.equal(scheduled[3].title, before[2].title);
+  assert.deepEqual(scheduled[5].exerciseVideoLinks['incline-bench-press'], before[4].exerciseVideoLinks['incline-bench-press']);
+  assert.equal(scheduled[0].exerciseTargets['chest-press-machine'].sets, 5);
+  scheduled[0].exerciseTargets['chest-press-machine'].sets = 8;
+  scheduled[5].exerciseVideoLinks['incline-bench-press'].english = 'changed';
+  assert.deepEqual(original, before);
+  assert.deepEqual(applyRestDaySchedule(original, [1, 2]), original, 'wrong-count choices cannot discard a sheet workout');
 });

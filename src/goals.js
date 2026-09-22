@@ -54,6 +54,45 @@ const ACTIVE_DAYS = {
 };
 const RECOVERY_IDS = ['standing-reach', 'easy-squat'];
 
+export function normalizeRestDays(restDays, weeklyGoal) {
+  const goal = Number(weeklyGoal);
+  if (!Number.isInteger(goal) || goal < 1 || goal > 7 || !Array.isArray(restDays)
+    || restDays.length !== 7 - goal || new Set(restDays).size !== restDays.length
+    || restDays.some(day => !Number.isInteger(day) || day < 0 || day > 6)) return null;
+  return [...restDays].sort((a, b) => a - b);
+}
+
+export function getDefaultRestDays(weeklyGoal, level = 'beginner') {
+  const requested = Number(weeklyGoal);
+  const goal = Number.isInteger(requested) && requested >= 1 && requested <= 7
+    ? requested : (LEVEL_SETTINGS[level] || LEVEL_SETTINGS.beginner).maxStrengthDays;
+  return DAYS.flatMap((_, index) => ACTIVE_DAYS[goal].includes(index) ? [] : [index]);
+}
+
+function completeRestPlan(day, template = {}) {
+  return {
+    ...structuredClone(template), day, title: 'Complete rest', focus: 'A day off from training',
+    duration: 0, exerciseIds: [], sets: 1, reps: '6', muscleGroups: ['Mobility'],
+    rest: true, custom: false, customTitle: false, intensity: 'recovery', exerciseTargets: {},
+    ...(template.exerciseVideoLinks !== undefined && { exerciseVideoLinks: {} }),
+  };
+}
+
+// Keep the workout sequence (including source-specific targets and links),
+// changing only its calendar placement. Custom saved weeks bypass this helper.
+export function applyRestDaySchedule(plans, restDays) {
+  if (!Array.isArray(plans)) return [];
+  const week = structuredClone(plans);
+  const workouts = week.filter(plan => !plan.rest);
+  const selected = normalizeRestDays(restDays, workouts.length);
+  if (selected === null || week.length !== 7) return week;
+  const restTemplate = week.find(plan => plan.rest);
+  let workoutIndex = 0;
+  return DAYS.map((day, index) => selected.includes(index)
+    ? completeRestPlan(day, restTemplate)
+    : { ...workouts[workoutIndex++], day });
+}
+
 // These are ordinary alternatives within the same muscle group and skill tier.
 // The rotation is a presentation preference, not a physiological recommendation:
 // every gender keeps the same goal, training days, sets, reps, and intensity.
@@ -193,9 +232,21 @@ function makePlan({ day, title, ids, place, sets, reps, intensity, fitnessGoal, 
   };
 }
 
-export function getSuggestedWeekPlan({ fitnessGoal, level, trainingPlace, weeklyGoal, gender } = {}) {
+export function getSuggestedWeekPlan({ fitnessGoal, level, trainingPlace, weeklyGoal, gender, restDays } = {}) {
   // An unconfirmed goal must not replace an existing user's suggested routine.
-  if (!GOAL_IDS.has(fitnessGoal)) return getWeekPlan(level, trainingPlace);
+  if (!GOAL_IDS.has(fitnessGoal)) {
+    const legacy = getWeekPlan(level, trainingPlace);
+    const selected = normalizeRestDays(restDays, weeklyGoal);
+    if (selected === null) return legacy;
+    // An explicit schedule can change the count while retaining the legacy
+    // workout sequence and leaving the user's fitness goal unconfirmed.
+    const workouts = legacy.filter(plan => !plan.rest);
+    const count = 7 - selected.length;
+    const template = DAYS.map((day, index) => index < count
+      ? { ...structuredClone(workouts[index % workouts.length]), day }
+      : completeRestPlan(day));
+    return applyRestDaySchedule(template, selected);
+  }
   const selectedLevel = LEVEL_SETTINGS[level] ? level : 'beginner';
   const normalizedGender = normalizeGender(gender);
   const selectedGender = GENDER_ROTATIONS[normalizedGender] ? normalizedGender : null;
@@ -203,9 +254,13 @@ export function getSuggestedWeekPlan({ fitnessGoal, level, trainingPlace, weekly
   const settings = LEVEL_SETTINGS[selectedLevel];
   const requestedDays = Number(weeklyGoal);
   const dayCount = Number.isInteger(requestedDays) && requestedDays >= 1 && requestedDays <= 7 ? requestedDays : settings.maxStrengthDays;
+  const selectedRestDays = normalizeRestDays(restDays, dayCount);
   // This explicit six-day gym choice follows the supplied sheet exactly;
   // comparable-variant rotations must not rewrite its exercise order.
-  if (fitnessGoal === 'body-recomposition' && place === 'gym' && dayCount === 6) return getRecompositionWeekPlan(selectedLevel);
+  if (fitnessGoal === 'body-recomposition' && place === 'gym' && dayCount === 6) {
+    const sheet = getRecompositionWeekPlan(selectedLevel);
+    return selectedRestDays === null ? sheet : applyRestDaySchedule(sheet, selectedRestDays);
+  }
   const activeDays = ACTIVE_DAYS[dayCount];
   const strengthDays = new Set([
     ...settings.preferredDays.filter((day) => activeDays.includes(day)),
@@ -215,7 +270,7 @@ export function getSuggestedWeekPlan({ fitnessGoal, level, trainingPlace, weekly
   const light = lightTemplates(fitnessGoal);
   let strengthIndex = 0;
   let lightIndex = 0;
-  return DAYS.map((day, index) => {
+  const week = DAYS.map((day, index) => {
     const variationContext = { gender: selectedGender, level: selectedLevel, dayIndex: index };
     if (!activeDays.includes(index)) return makePlan({ day, title: 'Rest & recovery', ids: RECOVERY_IDS, place, sets: 1, reps: '6', intensity: 'recovery', fitnessGoal, ...variationContext });
     if (!strengthDays.has(index)) {
@@ -226,4 +281,5 @@ export function getSuggestedWeekPlan({ fitnessGoal, level, trainingPlace, weekly
     const reps = fitnessGoal === 'fat-loss' ? '10–15' : fitnessGoal === 'build-muscle' ? '8–12' : selectedLevel === 'beginner' ? '8–10' : '10–12';
     return makePlan({ day, title, ids, place, sets: settings.sets, reps, intensity: 'strength', fitnessGoal, ...variationContext });
   });
+  return selectedRestDays === null ? week : applyRestDaySchedule(week, selectedRestDays);
 }
