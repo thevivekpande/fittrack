@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createEmptyWorkspace, isCalendarDate, migrateLegacyWorkspace, normalizeWorkspace, recordVisit, resolveWorkspaceWrite, validateSession } from '../src/database.js';
 import { EXERCISES, MUSCLE_GROUPS, getWeekPlan } from '../src/data.js';
+import { getRecompositionWeekPlan } from '../src/recompositionPlan.js';
 
 const sessionRecord = (id = 'real-workout') => ({ id, date: '2026-09-09', title: 'My first workout', duration: 31, calories: 186, exercises: 4, level: 'beginner' });
 const activeSession = () => ({ id: 'active-workout', plan: { ...getWeekPlan('beginner', 'gym')[0], level: 'beginner', trainingPlace: 'gym' }, exerciseIndex: 0, completed: {}, elapsed: 125 });
@@ -237,9 +238,10 @@ test('weekly validation enforces place availability without silently replacing e
   unavailableHome[0].exerciseIds.push(gymOnly.id);
   const unknownExercise = structuredClone(validHome);
   unknownExercise[1].exerciseIds.push('removed-exercise');
-  const emptyRecovery = structuredClone(validHome);
-  emptyRecovery[6].exerciseIds = [];
-  for (const invalid of [unavailableHome, unknownExercise, emptyRecovery]) {
+  const emptyTraining = structuredClone(validHome);
+  emptyTraining[6].exerciseIds = [];
+  emptyTraining[6].rest = false;
+  for (const invalid of [unavailableHome, unknownExercise, emptyTraining]) {
     const loaded = normalizeWorkspace({ weeklyPlans: { 'home:beginner': invalid, 'gym:medium': weeklyPlan('gym', 'medium') } });
     assert.equal('home:beginner' in loaded.weeklyPlans, false);
     assert.equal(loaded.weeklyPlans['gym:medium'].length, 7);
@@ -296,4 +298,74 @@ test('gender is never guessed for existing profiles and supported selections per
   }
   const unknown=normalizeWorkspace({...initial,profile:{...initial.profile,gender:'unrecognized'}});
   assert.equal(unknown.profile.gender,null);assert.equal(unknown.profile.name,'Pat');assert.equal(unknown.history.length,1);
+});
+
+test('per-exercise sets and mixed units survive reload and bound unfinished completion independently', () => {
+  const session = activeSession();
+  session.plan.exerciseIds = ['bicep-curl', 'plank', 'treadmill-walk'];
+  session.plan.exerciseTargets = {
+    'bicep-curl': { sets: 4, reps: '8–12', unit: 'reps', restSeconds: 90 },
+    plank: { sets: 2, reps: '30–45', unit: 'sec', restSeconds: 30 },
+    'treadmill-walk': { sets: 1, reps: '10–15', unit: 'min', restSeconds: 0 },
+    'removed-exercise': { sets: 3, reps: '10', unit: 'reps', restSeconds: 60 },
+  };
+  session.completed = { 'bicep-curl': [0, 1, 2, 3, 4, -1, 1], plank: [0, 1, 2, 3], 'treadmill-walk': [0, 1, 2] };
+  const loaded = normalizeWorkspace({ session, history: [sessionRecord()] });
+  assert.deepEqual(loaded.session.completed, { 'bicep-curl': [0, 1, 2, 3], plank: [0, 1], 'treadmill-walk': [0] });
+  assert.deepEqual(Object.keys(loaded.session.plan.exerciseTargets), ['bicep-curl', 'plank', 'treadmill-walk']);
+  assert.equal(loaded.session.plan.exerciseTargets['treadmill-walk'].unit, 'min');
+  assert.deepEqual(normalizeWorkspace(structuredClone(loaded)), loaded);
+  assert.deepEqual(loaded.history, [sessionRecord()]);
+  assert.equal(loaded.session.elapsed, session.elapsed);
+});
+
+test('a deliberate full rest Sunday persists without fabricating a workout or an active session', () => {
+  const week = weeklyPlan();
+  week[6] = { ...week[6], title: 'Full rest', exerciseIds: [], muscleGroups: ['Mobility'], sets: 1, reps: '6', rest: true, duration: 0, exerciseTargets: {}, programId: 'six-day-recomposition' };
+  const data = normalizeWorkspace({ weeklyPlans: { 'gym:beginner': week }, customPlans: { 'gym:beginner:2026-09-13': week[6] } });
+  assert.deepEqual(data.weeklyPlans['gym:beginner'][6], week[6]);
+  assert.deepEqual(data.customPlans['gym:beginner:2026-09-13'].exerciseIds, []);
+  assert.deepEqual(data.history, []);
+  assert.equal(data.session, null);
+  assert.deepEqual(normalizeWorkspace(structuredClone(data)), data);
+  assert.equal(validateSession({ ...activeSession(), plan: { ...week[6], level: 'beginner', trainingPlace: 'gym' } }), null);
+  const invalid = structuredClone(week);
+  invalid[6].rest = false;
+  assert.deepEqual(normalizeWorkspace({ weeklyPlans: { 'gym:beginner': invalid } }).weeklyPlans, {});
+});
+
+test('invalid target entries fall back without dropping the plan and target-only edits trigger conflicts', () => {
+  const week = weeklyPlan();
+  const id = week[0].exerciseIds[0];
+  week[0].exerciseTargets = { [id]: { sets: 3, reps: '12', unit: 'reps', restSeconds: 75 } };
+  const baseline = normalizeWorkspace({ weeklyPlans: { 'gym:beginner': week } });
+  const remote = structuredClone(baseline);
+  remote.weeklyPlans['gym:beginner'][0].exerciseTargets[id].sets = 4;
+  const local = structuredClone(baseline);
+  local.weeklyPlans['gym:beginner'][0].exerciseTargets[id].reps = '15';
+  assert.equal(resolveWorkspaceWrite(remote, baseline, local).conflict, true);
+  const corrupt = structuredClone(baseline);
+  corrupt.weeklyPlans['gym:beginner'][0].exerciseTargets[id].sets = 99;
+  const normalized = normalizeWorkspace(corrupt);
+  assert.equal(normalized.weeklyPlans['gym:beginner'].length, 7);
+  assert.deepEqual(normalized.weeklyPlans['gym:beginner'][0].exerciseTargets, {});
+});
+
+test('the full six-day source plan reloads with exact day-specific links and targets at every level', () => {
+  for (const level of ['beginner', 'medium', 'experienced']) {
+    const week = getRecompositionWeekPlan(level);
+    const state = normalizeWorkspace({ weeklyPlans: { [`gym:${level}`]: week } });
+    const reloaded = normalizeWorkspace(structuredClone(state));
+    const savedWeek = reloaded.weeklyPlans[`gym:${level}`];
+    assert.equal(savedWeek.length, 7);
+    for (let index = 0; index < 7; index += 1) {
+      assert.deepEqual(savedWeek[index].exerciseTargets, week[index].exerciseTargets);
+      assert.deepEqual(savedWeek[index].exerciseVideoLinks, week[index].exerciseVideoLinks);
+      assert.equal(savedWeek[index].programId, 'six-day-recomposition');
+    }
+    assert.notEqual(savedWeek[0].exerciseVideoLinks['incline-bench-press'].english, savedWeek[4].exerciseVideoLinks['incline-bench-press'].english);
+    assert.deepEqual(savedWeek[6].exerciseIds, []);
+    assert.deepEqual(reloaded.history, []);
+    assert.equal(reloaded.session, null);
+  }
 });

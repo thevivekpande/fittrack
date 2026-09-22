@@ -26,19 +26,20 @@ for (const fitnessGoal of goalIds) {
       for (const trainingPlace of ['home', 'gym']) {
         for (let weeklyGoal = 1; weeklyGoal <= 7; weeklyGoal += 1) {
           const context = `${fitnessGoal}/${level}/${trainingPlace}/${weeklyGoal}`;
+          const fromSheet = fitnessGoal === 'body-recomposition' && trainingPlace === 'gym' && weeklyGoal === 6;
           const week = getSuggestedWeekPlan({ fitnessGoal, level, trainingPlace, weeklyGoal });
           assert.deepEqual(week.map((plan) => plan.day), days, context);
           assert.equal(week.filter((plan) => !plan.rest).length, weeklyGoal, context);
           assert.equal(week.filter((plan) => plan.rest).length, 7 - weeklyGoal, context);
           const strength = week.filter((plan) => plan.intensity === 'strength');
           const light = week.filter((plan) => plan.intensity === 'light');
-          assert.equal(strength.length, Math.min(weeklyGoal, settings[level].cap), context);
-          assert.equal(light.length, Math.max(0, weeklyGoal - settings[level].cap), context);
+          assert.equal(strength.length, fromSheet ? 6 : Math.min(weeklyGoal, settings[level].cap), context);
+          assert.equal(light.length, fromSheet ? 0 : Math.max(0, weeklyGoal - settings[level].cap), context);
           for (const plan of week) {
             assert.ok(plan.title && plan.focus, context);
-            assert.ok(plan.exerciseIds.length >= 2 && plan.exerciseIds.length <= 12, context);
+            assert.ok(plan.exerciseIds.length >= (fromSheet && plan.rest ? 0 : 2) && plan.exerciseIds.length <= 12, context);
             assert.equal(new Set(plan.exerciseIds).size, plan.exerciseIds.length, context);
-            assert.ok(Number.isInteger(plan.duration) && plan.duration >= 1, context);
+            assert.ok(Number.isInteger(plan.duration) && plan.duration >= (fromSheet && plan.rest ? 0 : 1), context);
             assert.match(plan.reps, /^\d+(?:–\d+)?$/, context);
             assert.ok(plan.muscleGroups.length > 0 && plan.muscleGroups.every((group) => MUSCLE_GROUPS.includes(group)), context);
             assert.equal(plan.custom, false, context);
@@ -50,10 +51,10 @@ for (const fitnessGoal of goalIds) {
             }
             if (plan.rest) {
               assert.equal(plan.intensity, 'recovery', context);
-              assert.deepEqual(plan.exerciseIds, ['standing-reach', 'easy-squat'], context);
+              assert.deepEqual(plan.exerciseIds, fromSheet ? [] : ['standing-reach', 'easy-squat'], context);
               assert.equal(plan.sets, 1, context);
             } else if (plan.intensity === 'strength') {
-              assert.equal(plan.sets, settings[level].sets, context);
+              assert.equal(plan.sets, fromSheet ? (level === 'beginner' ? 2 : 3) : settings[level].sets, context);
             } else {
               assert.ok(plan.sets >= 1 && plan.sets <= 2, context);
               assert.ok(plan.exerciseIds.every((id) => ['Core', 'Cardio', 'Mobility'].includes(exerciseMap.get(id).group)), context);
@@ -152,17 +153,18 @@ test('gender variations preserve experience, training days, equipment, and muscl
       for (const trainingPlace of ['home', 'gym']) {
         for (let weeklyGoal = 1; weeklyGoal <= 7; weeklyGoal += 1) {
           const input = { fitnessGoal, level, trainingPlace, weeklyGoal };
+          const fromSheet = fitnessGoal === 'body-recomposition' && trainingPlace === 'gym' && weeklyGoal === 6;
           const baseline = getSuggestedWeekPlan(input);
           const variants = selectedGenders.map((gender) => getSuggestedWeekPlan({ ...input, gender }));
           const signatures = variants.map((week) => JSON.stringify(week.map(({ exerciseIds }) => exerciseIds)));
-          assert.equal(new Set(signatures).size, selectedGenders.length, `${fitnessGoal}/${level}/${trainingPlace}/${weeklyGoal}: distinct deterministic variations`);
+          assert.equal(new Set(signatures).size, fromSheet ? 1 : selectedGenders.length, `${fitnessGoal}/${level}/${trainingPlace}/${weeklyGoal}: preserve source or vary comparable exercises`);
           for (const [genderIndex, week] of variants.entries()) {
             const gender = selectedGenders[genderIndex];
             assert.deepEqual(getSuggestedWeekPlan({ ...input, gender }), week);
             assert.equal(week.filter((plan) => !plan.rest).length, weeklyGoal);
             for (const [dayIndex, plan] of week.entries()) {
               const base = baseline[dayIndex];
-              assert.equal(plan.gender, gender);
+              assert.equal(plan.gender, fromSheet ? undefined : gender);
               for (const key of ['day', 'sets', 'reps', 'rest', 'intensity', 'fitnessGoal', 'title']) assert.equal(plan[key], base[key]);
               assert.equal(plan.exerciseIds.length, base.exerciseIds.length);
               assert.equal(new Set(plan.exerciseIds).size, plan.exerciseIds.length);

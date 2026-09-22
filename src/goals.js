@@ -1,5 +1,6 @@
 import { EXERCISES, getWeekPlan } from './data.js';
 import { normalizeGender } from './profile.js';
+import { getRecompositionWeekPlan } from './recompositionPlan.js';
 
 export const FITNESS_GOALS = Object.freeze([
   {
@@ -202,6 +203,9 @@ export function getSuggestedWeekPlan({ fitnessGoal, level, trainingPlace, weekly
   const settings = LEVEL_SETTINGS[selectedLevel];
   const requestedDays = Number(weeklyGoal);
   const dayCount = Number.isInteger(requestedDays) && requestedDays >= 1 && requestedDays <= 7 ? requestedDays : settings.maxStrengthDays;
+  // This explicit six-day gym choice follows the supplied sheet exactly;
+  // comparable-variant rotations must not rewrite its exercise order.
+  if (fitnessGoal === 'body-recomposition' && place === 'gym' && dayCount === 6) return getRecompositionWeekPlan(selectedLevel);
   const activeDays = ACTIVE_DAYS[dayCount];
   const strengthDays = new Set([
     ...settings.preferredDays.filter((day) => activeDays.includes(day)),

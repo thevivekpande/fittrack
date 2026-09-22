@@ -5,4 +5,5 @@ export function matchesExercise(exercise, query) {
   return `${exercise.name} ${exercise.group} ${exercise.equipment} ${aliases}`.toLowerCase().includes(query.trim().toLowerCase());
 }
 
-export const exerciseUnit = exercise => ['plank', 'sideplank'].includes(exercise.movement) ? 'sec' : 'reps';
+export const exerciseUnit = exercise => ['walking', 'cycling'].includes(exercise?.movement) ? 'min'
+  : ['plank', 'sideplank'].includes(exercise?.movement) ? 'sec' : 'reps';

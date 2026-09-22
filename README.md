@@ -20,7 +20,7 @@ Scan the desktop QR card to open [FitTrack on your phone](https://fittrack-three
 ## Features
 
 - Home and Gym training modes with three experience levels each and dedicated recovery sessions. Home plans use bodyweight exercises, a mat, or stable household support.
-- Sixty-seven searchable gym exercises and thirty home-friendly exercises with instructions and animated 3D movement previews. Filter biceps, triceps, and Abs & core separately; search “abs” to find all available core movements. View a smooth athletic demo figure, pause playback, change speed, drag to rotate, or pinch to zoom. Reset the camera anytime. An illustrated fallback works without WebGL.
+- Seventy-three searchable gym exercises and thirty home-friendly exercises with instructions and animated 3D movement previews. Filter biceps, triceps, and Abs & core separately; search “abs” to find all available core movements. View a smooth athletic demo figure, pause playback, change speed, drag to rotate, or pinch to zoom. Reset the camera anytime. An illustrated fallback works without WebGL.
 - Workout sessions with set completion, a pauseable timer, rest countdown, and automatic save/resume.
 - Weekly activity charts, workout history, body-weight trends, milestones, and CSV export.
 - Blank first-time setup for your name, gender, training location, experience level, primary fitness goal, weekly workout target, and optional starting weight.
@@ -32,6 +32,18 @@ Scan the desktop QR card to open [FitTrack on your phone](https://fittrack-three
 - Responsive workout screens with wrapping exercise tabs and touch-friendly controls, keyboard-accessible dialogs, and reduced-motion support.
 - Gender selection controls demo representation and rotates comparable exercise variations; goals, experience, and equipment determine the workout difficulty. All exercises remain available to everyone. Non-binary and private selections use a neutral demo figure.
 - A desktop QR card opens `https://fittrack-three-bice.vercel.app/` on a phone. QR codes are generated locally; progress stays in each browser.
+
+## Six-day recomposition plan
+
+Open **My workout plan → Review sheet plan → Use this 6-day plan** to review and apply the supplied **6-Day YouTube Gym Playlist**. You can inspect each exercise illustration, edit its targets, and choose Saturday's cardio before applying. Selecting **At the gym**, **6 days**, and **Build muscle & lose fat** also uses this sheet for the suggested plan; saved custom routines remain until you choose to replace them.
+
+The routine follows the sheet's exercise order: Monday chest and triceps, Tuesday back and biceps, Wednesday legs and core, Thursday shoulders and triceps, Friday chest and back, and Saturday legs, core, and cardio. **Sunday is complete rest**, with no scheduled exercises, session, or automatic activity entry. Saturday finishes with treadmill walking, with stationary cycling available as an alternative.
+
+The PDF does **not** prescribe sets, repetitions, hold times, rest periods, or weights. FitTrack adds editable starting targets: two sets for Beginner and three for Medium or Experienced, generally 8–12 repetitions for compound movements and 10–15 for isolation movements. Planks use 20–30 seconds; cardio starts at one 10–15-minute set. These are app suggestions, not prescriptions from the PDF or a claim that this six-day schedule is appropriate for everyone. Use the individual exercise target editor to change sets, repetitions, seconds or minutes, and rest between sets. Weekly and date-specific edits remain available after applying.
+
+The plan preserves all **64 exact Hindi and English YouTube search links** from the PDF, including the different Monday and Friday incline-press searches. These open search results, not specific verified videos. Existing catalog equivalents avoid duplicate exercises: Incline Chest Press maps to the incline dumbbell press, Leg Curl to the seated leg curl, and Close-grip Push-ups to narrow push-ups.
+
+Applying the sheet sets the location to Gym, the fitness goal to Build muscle & lose fat, and the weekly target to six workouts. It replaces the gym split for the selected experience level and its date edits from the current week onward. Your local profile's other details, completed history, unfinished session, and routines for other locations or levels stay saved. Gender changes the illustration, without substituting exercises in this exact sheet.
 
 ## Your data
 
@@ -61,4 +73,4 @@ npm run build
 npm run preview
 ```
 
-Tests validate both training environments, every plan and exercise reference, new demo movements, recovery sessions, all goal/location/level/frequency combinations, recurring splits, date-specific overrides, blank defaults, migration, record validation, and visit tracking. Production files are generated in `dist/` and can be served by any static web host.
+Tests validate both training environments, every plan and exercise reference, new demo movements, recovery sessions and complete rest, all goal/location/level/frequency combinations, exact PDF exercise order and video queries, per-exercise target units, recurring splits, date-specific overrides, blank defaults, migration, record validation, and visit tracking. Production files are generated in `dist/` and can be served by any static web host.

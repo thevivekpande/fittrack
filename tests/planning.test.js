@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getWeekPlan, dateKey } from '../src/data.js';
+import { EXERCISES, getWeekPlan, dateKey } from '../src/data.js';
 import { resolveWeekPlans, applyWeeklySplit, estimateWorkoutMinutes, updatePlanExercises } from '../src/planning.js';
+import { getRecompositionWeekPlan } from '../src/recompositionPlan.js';
 
 const dates = Array.from({length:7},(_,index)=>new Date(2026,8,7+index,12));
 const nextDates = dates.map(date=>new Date(date.getFullYear(),date.getMonth(),date.getDate()+7,12));
@@ -139,4 +140,89 @@ test('gender selection is saved with goals without rewriting custom or unfinishe
   assert.equal(saved.profile.gender,'woman');assert.equal(saved.weeklyPlans,state.weeklyPlans);assert.equal(saved.session,state.session);assert.equal(saved.history,state.history);
   const noGenderEdit=updateTrainingGoal(saved,{fitnessGoal:'general-fitness',weeklyGoal:4,trainingPlace:'gym',level:'beginner'});
   assert.equal(noGenderEdit.profile.gender,'woman');
+});
+
+test('per-exercise set counts, timed targets, and continuous cardio contribute to duration', () => {
+  const curl = EXERCISES.find(exercise => exercise.id === 'bicep-curl');
+  const plank = EXERCISES.find(exercise => exercise.id === 'plank');
+  const targets = {
+    [curl.id]: { sets: 6, reps: '8–12', unit: 'reps', restSeconds: 90 },
+    [plank.id]: { sets: 3, reps: '30–60', unit: 'sec', restSeconds: 30 },
+  };
+  assert.equal(estimateWorkoutMinutes([curl, plank], 2, false, targets), 16, '13.75 min effort/rest + 2 min exercise transitions, rounded up once');
+  assert.equal(estimateWorkoutMinutes([plank], 2, false, { [plank.id]: { sets: 1, reps: '10–15', unit: 'min', restSeconds: 0 } }), 14);
+  assert.equal(estimateWorkoutMinutes([{ id: 'continuous-cardio', movement: 'walking', duration: 4 }], 4), 10);
+  assert.equal(estimateWorkoutMinutes([], 1, true), 0);
+});
+
+test('editing exercise choices prunes only removed targets and video links while keeping remaining targets independent', () => {
+  const chosen = ['bicep-curl', 'plank'].map(id => EXERCISES.find(exercise => exercise.id === id));
+  const plan = { title: 'My mixed workout', focus: 'Arms and core', duration: 23, sets: 2, reps: '10', rest: false, custom: true, customTitle: true,
+    exerciseIds: chosen.map(exercise => exercise.id), muscleGroups: ['Biceps', 'Core'], programId: 'six-day-recomposition',
+    exerciseTargets: { 'bicep-curl': { sets: 4, reps: '8–12', unit: 'reps', restSeconds: 90 }, plank: { sets: 2, reps: '45', unit: 'sec', restSeconds: 30 } },
+    exerciseVideoLinks: { 'bicep-curl': { english: 'https://www.youtube.com/results?search_query=curl', hindi: 'https://www.youtube.com/results?search_query=curl+hindi' }, plank: { english: 'https://www.youtube.com/results?search_query=plank' } },
+  };
+  const unchanged = updatePlanExercises(plan, chosen, EXERCISES);
+  assert.equal(unchanged.duration, 23);
+  assert.equal(unchanged.title, plan.title);
+  assert.deepEqual(unchanged.exerciseTargets, plan.exerciseTargets);
+  const saved = updatePlanExercises(plan, [chosen[1]], EXERCISES);
+  assert.deepEqual(Object.keys(saved.exerciseTargets), ['plank']);
+  assert.deepEqual(Object.keys(saved.exerciseVideoLinks), ['plank']);
+  assert.equal(saved.programId, plan.programId);
+  saved.exerciseTargets.plank.sets = 8;
+  saved.exerciseVideoLinks.plank.english = 'edited';
+  assert.equal(plan.exerciseTargets.plank.sets, 2);
+  assert.notEqual(plan.exerciseVideoLinks.plank.english, 'edited');
+});
+
+test('weekly and dated target overrides are cloned and installing a split preserves actual history and unfinished work', () => {
+  const plans = week();
+  plans[0].exerciseTargets = { 'bicep-curl': { sets: 4, reps: '8–12', unit: 'reps', restSeconds: 90 } };
+  plans[6] = { ...plans[6], title: 'Full rest', exerciseIds: [], rest: true, duration: 0, muscleGroups: ['Mobility'], exerciseTargets: {} };
+  const dateKeyValue = `gym:beginner:${dateKey(dates[0])}`;
+  const customPlans = { [dateKeyValue]: { ...plans[0], exerciseTargets: { 'bicep-curl': { sets: 2, reps: '15', unit: 'reps', restSeconds: 60 } } } };
+  const resolved = resolveWeekPlans({ level: 'beginner', trainingPlace: 'gym', weeklyPlans: { 'gym:beginner': plans }, customPlans, dates });
+  assert.equal(resolved[0].exerciseTargets['bicep-curl'].sets, 2);
+  assert.equal(resolved[6].duration, 0);
+  assert.deepEqual(resolved[6].exerciseIds, []);
+  resolved[0].exerciseTargets['bicep-curl'].sets = 9;
+  assert.equal(customPlans[dateKeyValue].exerciseTargets['bicep-curl'].sets, 2);
+  const state = { history: [{ id: 'actual-workout' }], session: { id: 'unfinished-workout' }, customPlans, weeklyPlans: {} };
+  const installed = applyWeeklySplit(state, { trainingPlace: 'gym', level: 'beginner', plans, fromDate: dates[0] });
+  installed.weeklyPlans['gym:beginner'][0].exerciseTargets['bicep-curl'].sets = 7;
+  assert.equal(plans[0].exerciseTargets['bicep-curl'].sets, 4);
+  assert.equal(installed.history, state.history);
+  assert.equal(installed.session, state.session);
+});
+
+test('target-only edits recalculate duration, while effective unchanged defaults preserve its exact value', () => {
+  const curl = EXERCISES.find(exercise => exercise.id === 'bicep-curl');
+  const original = { title: 'My curl session', focus: 'Biceps', duration: 17, sets: 3, reps: '10', rest: false, exerciseIds: [curl.id], muscleGroups: ['Biceps'], custom: true, customTitle: true };
+  const materialized = { ...original, exerciseTargets: { [curl.id]: { sets: 3, reps: '10', unit: 'reps', restSeconds: 60 } } };
+  assert.equal(updatePlanExercises(materialized, [curl], EXERCISES, original).duration, 17);
+  const moreReps = { ...materialized, exerciseTargets: { [curl.id]: { ...materialized.exerciseTargets[curl.id], reps: '30' } } };
+  const edited = updatePlanExercises(moreReps, [curl], EXERCISES, original);
+  assert.equal(edited.duration, 8);
+  assert.equal(edited.title, original.title);
+  const moreRest = { ...moreReps, exerciseTargets: { [curl.id]: { ...moreReps.exerciseTargets[curl.id], restSeconds: 120 } } };
+  assert.equal(updatePlanExercises(moreRest, [curl], EXERCISES, original).duration, 10);
+  assert.equal(original.duration, 17);
+});
+
+test('opening and saving the complete preset uses identical duration estimates on all seven days', () => {
+  for (const level of ['beginner', 'medium', 'experienced']) {
+    for (const plan of getRecompositionWeekPlan(level)) {
+      const selected = plan.exerciseIds.map(id => EXERCISES.find(exercise => exercise.id === id));
+      assert.equal(estimateWorkoutMinutes(selected, plan.sets, plan.rest, plan.exerciseTargets), plan.duration, `${level} ${plan.day}`);
+      assert.equal(updatePlanExercises(plan, selected, EXERCISES, plan).duration, plan.duration);
+    }
+  }
+});
+
+test('partial target duration combines fractional timed work and catalogue work before rounding', () => {
+  const curl = EXERCISES.find(exercise => exercise.id === 'bicep-curl');
+  const plank = EXERCISES.find(exercise => exercise.id === 'plank');
+  const targets = { plank: { sets: 1, reps: '10', unit: 'sec', restSeconds: 0 } };
+  assert.equal(estimateWorkoutMinutes([curl, plank], 2, false, targets), 5, '3⅓ catalogue minutes + 1⅙ targeted minutes = 4½, rounded up once');
 });

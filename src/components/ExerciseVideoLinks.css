@@ -1,0 +1,7 @@
+.exercise-video-links { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: center; padding: 12px 0; color: #718166; }
+.exercise-video-links > span { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
+.exercise-video-links > div { display: flex; gap: 8px; }
+.exercise-video-links a { display: inline-flex; align-items: center; gap: 5px; min-height: 36px; padding: 0 10px; border: 1px solid #dce5d6; border-radius: 7px; text-decoration: none; font-size: 12px; font-weight: 600; color: #365a44; background: #f7faf2; }
+.exercise-video-links a:hover { background: #eaf1df; }
+.exercise-video-links small { width: 100%; font-size: 10px; line-height: 1.5; color: #859079; }
+@media(max-width:560px) { .exercise-video-links a { min-height: 44px; } }

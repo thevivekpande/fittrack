@@ -13,15 +13,15 @@ const { SUPPORTED_MOVEMENTS, getExercisePose, getEquipmentProps, getWeightAttach
 test('catalog separates home and gym equipment and contains no invented activity', () => {
   assert.deepEqual(TRAINING_PLACES.map(({ id }) => id), ['home', 'gym']);
   assert.deepEqual(LEVELS.map(({ label }) => label), ['Beginner', 'Medium', 'Experienced']);
-  assert.equal(EXERCISES.length, 67);
-  assert.equal(getExercisesForPlace('gym').length, 67);
+  assert.equal(EXERCISES.length, 73);
+  assert.equal(getExercisesForPlace('gym').length, 73);
   assert.equal(getExercisesForPlace('home').length, 30);
   assert.ok(getExercisesForPlace('gym').length > getExercisesForPlace('home').length);
   assert.equal(new Set(EXERCISES.map(({ id }) => id)).size, EXERCISES.length);
   for (const exercise of getExercisesForPlace('home')) {
     assert.ok(['Bodyweight', 'Exercise mat', 'Stable household support'].includes(exercise.equipment), exercise.id);
   }
-  for (const id of ['bench-press', 'lat-pulldown', 'cable-row', 'leg-press', 'lateral-raise', 'triceps-pushdown', 'romanian-deadlift']) {
+  for (const id of ['bench-press', 'lat-pulldown', 'cable-row', 'leg-press', 'lateral-raise', 'triceps-pushdown', 'romanian-deadlift', 'chest-press-machine', 'pec-deck', 'rear-delt-fly', 'cable-triceps-extension', 'treadmill-walk', 'stationary-bike']) {
     assert.deepEqual(EXERCISES.find((exercise) => exercise.id === id)?.places, ['gym'], id);
   }
   assert.equal('createInitialHistory' in data, false);

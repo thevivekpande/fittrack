@@ -3,12 +3,17 @@ import { Check, Dumbbell, Search, SlidersHorizontal, X } from 'lucide-react';
 import { MAX_PLAN_EXERCISES, updatePlanExercises } from '../planning';
 import './WorkoutBuilder.css';
 import { matchesExercise, muscleLabel } from '../exerciseSearch';
+import ExerciseTargets, { targetErrors } from './ExerciseTargets';
 
 export default function WorkoutBuilder({ plan, exercises, trainingPlace, onSave, onCancel }) {
   const [selected, setSelected] = useState([...plan.exerciseIds]);
   const [query, setQuery] = useState('');
   const [group, setGroup] = useState('All');
   const [notice, setNotice] = useState('');
+  const [exerciseTargets, setExerciseTargets] = useState(() => structuredClone(plan.exerciseTargets || {}));
+  const chosen = selected.map(id => exercises.find(exercise => exercise.id === id)).filter(Boolean);
+  const draftPlan = { ...plan, exerciseTargets };
+  const invalidTargets = targetErrors(draftPlan, chosen).length > 0;
   const filtered = exercises.filter(exercise =>
     (group === 'All' || group === exercise.group) &&
     matchesExercise(exercise, query),
@@ -23,9 +28,8 @@ export default function WorkoutBuilder({ plan, exercises, trainingPlace, onSave,
 
   function save(event) {
     event.preventDefault();
-    if (!selected.length || selected.length > MAX_PLAN_EXERCISES) return;
-    const chosen = selected.map(id => exercises.find(exercise => exercise.id === id)).filter(Boolean);
-    onSave(updatePlanExercises(plan, chosen, exercises));
+    if ((!selected.length && !plan.rest) || selected.length > MAX_PLAN_EXERCISES || invalidTargets) return;
+    onSave(updatePlanExercises(draftPlan, chosen, exercises, plan));
   }
 
   return <form className="workout-builder" onSubmit={save}>
@@ -39,7 +43,8 @@ export default function WorkoutBuilder({ plan, exercises, trainingPlace, onSave,
     <div className="builder-filters">{['All',...new Set(exercises.map(exercise=>exercise.group))].map(value=><button type="button" key={value} aria-pressed={group===value} className={group===value?'active':''} onClick={()=>setGroup(value)}>{muscleLabel(value)}</button>)}</div>
     <div className="builder-exercises">{filtered.map(exercise=><label className={`builder-exercise ${selected.includes(exercise.id)?'selected':''}`} key={exercise.id}><input type="checkbox" checked={selected.includes(exercise.id)} onChange={()=>toggle(exercise.id)}/><span className="builder-check">{selected.includes(exercise.id)&&<Check size={13}/>}</span><span className="builder-exercise-text"><strong>{exercise.name}</strong><small>{muscleLabel(exercise.group)} <i>·</i> {exercise.equipment}</small></span><span className="builder-duration">{exercise.duration} min</span></label>)}</div>
     {!filtered.length&&<div className="builder-no-results"><Dumbbell size={22}/><p>No exercises match. Try another name or muscle group.</p></div>}
+    <ExerciseTargets plan={draftPlan} exercises={chosen} onChange={setExerciseTargets}/>
     {(notice || selected.length > MAX_PLAN_EXERCISES)&&<p className="builder-notice" role="status">{notice || `Choose up to ${MAX_PLAN_EXERCISES} exercises. Remove a selected exercise to continue.`}</p>}
-    <div className="builder-footer"><button className="button button-secondary" type="button" onClick={onCancel}>Cancel</button><button className="button button-green" type="submit" disabled={!selected.length || selected.length > MAX_PLAN_EXERCISES}>Save {selected.length} exercise{selected.length===1?'':'s'} <Check size={16}/></button></div>
+    <div className="builder-footer"><button className="button button-secondary" type="button" onClick={onCancel}>Cancel</button><button className="button button-green" type="submit" disabled={(!selected.length&&!plan.rest) || selected.length > MAX_PLAN_EXERCISES || invalidTargets}>{!selected.length&&plan.rest?'Keep rest day':`Save ${selected.length} exercise${selected.length===1?'':'s'}`} <Check size={16}/></button></div>
   </form>;
 }

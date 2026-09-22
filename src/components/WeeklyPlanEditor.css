@@ -164,3 +164,5 @@
 }
 
 .weekly-timed-note{font-size:11px;color:#839176;line-height:1.7;margin-top:16px}
+.weekly-mobility-choice { display: inline-flex; align-items: center; gap: 9px; min-height: 44px; margin: 12px 0; font-size: 12px; color: #6c815b; cursor: pointer; }
+.weekly-mobility-choice input { accent-color: #658049; }

@@ -4,7 +4,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Pause, Play, RotateCw, Scan } from 'lucide-react';
 import './ExerciseDemo.css';
 
-export const SUPPORTED_MOVEMENTS = ['squat', 'pushup', 'curl', 'press', 'lunge', 'plank', 'row', 'jumpingjack', 'benchpress', 'latpulldown', 'cablerow', 'legpress', 'lateralraise', 'tricepspushdown', 'deadlift', 'bridge', 'chestfly', 'frontraise', 'tricepsextension', 'legextension', 'legcurl', 'calfraise', 'crunch', 'reversecrunch', 'deadbug', 'bicyclecrunch', 'heeltap', 'mountainclimber', 'cablecrunch', 'birddog', 'sideplank', 'legraise', 'superman', 'facepull'];
+export const SUPPORTED_MOVEMENTS = ['squat', 'pushup', 'curl', 'press', 'lunge', 'plank', 'row', 'jumpingjack', 'benchpress', 'latpulldown', 'cablerow', 'legpress', 'lateralraise', 'tricepspushdown', 'deadlift', 'bridge', 'chestfly', 'frontraise', 'tricepsextension', 'legextension', 'legcurl', 'calfraise', 'crunch', 'reversecrunch', 'deadbug', 'bicyclecrunch', 'heeltap', 'mountainclimber', 'cablecrunch', 'birddog', 'sideplank', 'legraise', 'superman', 'facepull', 'chestpressmachine', 'pecdeck', 'reardeltfly', 'cabletricepsextension', 'walking', 'cycling'];
 const MOVEMENTS = new Set(SUPPORTED_MOVEMENTS);
 const SEGMENTS = [
   ['leftShoulder', 'leftElbow'], ['leftElbow', 'leftHand'],
@@ -47,6 +47,12 @@ const CUES = {
   legraise: 'Lower your legs only as far as you can keep your back supported.',
   superman: 'Lift your arms and legs a little. Keep your gaze toward the mat.',
   facepull: 'Draw the rope toward your face. Keep your shoulders relaxed.',
+  chestpressmachine: 'Keep your back against the pad. Press forward and return with control.',
+  pecdeck: 'Keep your forearms on the pads. Bring your arms together in a smooth arc.',
+  reardeltfly: 'Hinge at your hips. Open your arms with a soft bend in your elbows.',
+  cabletricepsextension: 'Keep your upper arms steady. Extend your elbows overhead with control.',
+  walking: 'Walk at a comfortable pace. Stay upright and let your arms swing naturally.',
+  cycling: 'Keep a soft bend in your knees. Pedal smoothly with your hips steady on the saddle.',
 };
 
 export function getAvatarStyle(gender) {
@@ -69,6 +75,24 @@ function usesWeights(movement, equipment) {
   return equipment === undefined
     ? ['curl', 'press', 'row'].includes(movement)
     : /dumbbell/i.test(equipment);
+}
+
+function bendJoint(start, end, upperLength, lowerLength, preferredBend) {
+  const delta = end.map((value, index) => value - start[index]);
+  const distance = Math.max(0.0001, Math.hypot(...delta));
+  const axis = delta.map((value) => value / distance);
+  const along = (upperLength ** 2 - lowerLength ** 2 + distance ** 2) / (2 * distance);
+  const height = Math.sqrt(Math.max(0, upperLength ** 2 - along ** 2));
+  const projection = preferredBend.reduce((sum, value, index) => sum + value * axis[index], 0);
+  let perpendicular = preferredBend.map((value, index) => value - projection * axis[index]);
+  let normalLength = Math.hypot(...perpendicular);
+  if (normalLength < 0.0001) {
+    const alternative = Math.abs(axis[0]) < 0.9 ? [1, 0, 0] : [0, 0, 1];
+    const dot = alternative.reduce((sum, value, index) => sum + value * axis[index], 0);
+    perpendicular = alternative.map((value, index) => value - dot * axis[index]);
+    normalLength = Math.hypot(...perpendicular);
+  }
+  return start.map((value, index) => value + axis[index] * along + perpendicular[index] / normalLength * height);
 }
 
 export function getExercisePose(movement, time, equipment, exerciseName = '') {
@@ -395,6 +419,65 @@ export function getExercisePose(movement, time, equipment, exerciseName = '') {
       pose[`${side}Elbow`] = [sign * (0.37 + amount * 0.36), 2.09 + amount * 0.02, 0.47 - amount * 0.49];
       pose[`${side}Hand`] = [sign * (0.15 + amount * 0.28), 2.17 + amount * 0.16, 0.94 - amount * 0.82];
     }
+  } else if (movement === 'chestpressmachine' || movement === 'pecdeck') {
+    upperBody(0.90, 1.75, -0.25, -0.25);
+    for (const [side, sign] of [['left', -1], ['right', 1]]) {
+      pose[`${side}Knee`] = [sign * 0.27, 0.84, 0.36];
+      pose[`${side}Ankle`] = [sign * 0.29, 0.13, 0.51];
+      if (movement === 'chestpressmachine') {
+        const handleZ = 0.14 + amount * 0.47;
+        pose[`${side}Hand`] = [sign * 0.45, 2.65 - Math.sqrt(1.05 ** 2 - (handleZ - 0.10) ** 2), handleZ];
+        pose[`${side}Elbow`] = bendJoint(pose[`${side}Shoulder`], pose[`${side}Hand`], 0.46, 0.45, [sign, -0.3, -0.2]);
+      } else {
+        const angle = amount * 2.08;
+        pose[`${side}Elbow`] = [sign * (0.39 + Math.cos(angle) * 0.46), 1.70, -0.25 + Math.sin(angle) * 0.46];
+        pose[`${side}Hand`] = [pose[`${side}Elbow`][0], 2.13, pose[`${side}Elbow`][2] + 0.035];
+      }
+    }
+  } else if (movement === 'reardeltfly') {
+    upperBody(1.15, 1.62, -0.25, 0.35);
+    pose.head = [0, 1.91, 0.6];
+    const angle = amount * Math.PI / 2;
+    for (const [side, sign] of [['left', -1], ['right', 1]]) {
+      pose[`${side}Knee`] = [sign * 0.26, 0.65, 0.12];
+      pose[`${side}Elbow`] = [sign * (0.39 + Math.sin(angle) * 0.46), 1.58 - Math.cos(angle) * 0.46, 0.35];
+      pose[`${side}Hand`] = [sign * (0.39 + Math.sin(angle) * 0.88), 1.57 - Math.cos(angle) * 0.88, 0.41 - amount * 0.10];
+    }
+  } else if (movement === 'cabletricepsextension') {
+    Object.assign(pose, getExercisePose('tricepsextension', time, 'Cable machine'));
+    pose.leftAnkle[2] = 0.2; pose.leftKnee[2] = 0.1;
+    pose.rightAnkle[2] = -0.2; pose.rightKnee[2] = -0.1;
+  } else if (movement === 'walking') {
+    const phase = time * Math.PI * 1.3;
+    const bob = Math.cos(phase * 2) * 0.018;
+    upperBody(1.39 + bob, 2.24 + bob, 0, 0.025);
+    pose.head = [0, 2.65 + bob, 0.06];
+    pose.beltMarker = [0, 0.164, ((time * 0.7) % 0.36 + 0.36) % 0.36];
+    for (const [side, sign] of [['left', -1], ['right', 1]]) {
+      const cycle = ((time * 0.65 + (side === 'right' ? 0.5 : 0)) % 1 + 1) % 1;
+      const swing = cycle >= 0.6;
+      const progress = swing ? (cycle - 0.6) / 0.4 : cycle / 0.6;
+      pose[`${side}Ankle`] = [sign * 0.19, 0.29 + (swing ? Math.sin(progress * Math.PI) * 0.18 : 0), swing ? -0.38 + progress * 0.78 : 0.4 - progress * 0.78];
+      pose[`${side}Hip`][0] = sign * 0.20;
+      pose[`${side}Knee`] = bendJoint(pose[`${side}Hip`], pose[`${side}Ankle`], 0.62, 0.60, [0, 0.05, 1]);
+      const angle = -Math.cos(phase + (side === 'right' ? Math.PI : 0)) * 0.31;
+      pose[`${side}Elbow`] = [sign * 0.42, pose.shoulder[1] - 0.04 - Math.cos(angle) * 0.46, pose.shoulder[2] + Math.sin(angle) * 0.46];
+      pose[`${side}Hand`] = [sign * 0.43, pose[`${side}Elbow`][1] - Math.cos(angle + 0.18) * 0.43, pose[`${side}Elbow`][2] + Math.sin(angle + 0.18) * 0.43];
+    }
+  } else if (movement === 'cycling') {
+    upperBody(1.43, 2.15, -0.4, 0.01);
+    pose.head = [0, 2.5, 0.19];
+    const phase = time * Math.PI * 1.2;
+    pose.crank = [0, 0.52, 0.05];
+    for (const [side, sign] of [['left', -1], ['right', 1]]) {
+      const angle = phase + (side === 'right' ? Math.PI : 0);
+      const pedal = [sign * 0.25, 0.52 + Math.cos(angle) * 0.26, 0.05 + Math.sin(angle) * 0.26];
+      pose[`${side}Pedal`] = pedal;
+      pose[`${side}Ankle`] = [pedal[0], pedal[1] + 0.13, pedal[2] - 0.08];
+      pose[`${side}Knee`] = bendJoint(pose[`${side}Hip`], pose[`${side}Ankle`], 0.61, 0.60, [0, 0.25, 1]);
+      pose[`${side}Hand`] = [sign * 0.38, 1.96, 0.78];
+      pose[`${side}Elbow`] = bendJoint(pose[`${side}Shoulder`], pose[`${side}Hand`], 0.46, 0.44, [sign * 0.25, -1, 0]);
+    }
   } else if (movement === 'cablecrunch') {
     upperBody(0.87, 1.64 - amount * 0.47, -0.25, 0.05 + amount * 0.37);
     pose.head = [0, 2.06 - amount * 0.73, 0.09 + amount * 0.68];
@@ -566,6 +649,81 @@ export function getEquipmentProps(movement, pose, equipment = '', exerciseName =
     line(junction, pose.leftHand, 0.025, '#344c3f');
     line(junction, pose.rightHand, 0.025, '#344c3f');
   }
+  if (movement === 'chestpressmachine' || movement === 'pecdeck') {
+    bench(0.71, -0.51, 0.30, 0.40);
+    panel([[-0.35, 0.73, -0.45], [0.35, 0.73, -0.45], [0.35, 1.91, -0.45], [-0.35, 1.91, -0.45]], '#566d57');
+    for (const x of [-0.70, 0.70]) line([x, 0.06, -0.65], [x, 2.55, -0.65], 0.07);
+    line([-0.70, 2.55, -0.65], [0.70, 2.55, -0.65], 0.07);
+    line([-0.70, 0.06, -0.65], [0.70, 0.06, -0.65], 0.065);
+    if (movement === 'chestpressmachine') {
+      for (const [side, sign] of [['left', -1], ['right', 1]]) {
+        const hand = pose[`${side}Hand`];
+        line([sign * 0.70, 2.55, -0.65], [sign * 0.45, 2.65, 0.10], 0.055);
+        line([sign * 0.45, 2.65, 0.10], hand, 0.055);
+        line([hand[0] - 0.12, hand[1], hand[2]], [hand[0] + 0.12, hand[1], hand[2]], 0.032, '#2e4437');
+      }
+    } else {
+      for (const [side, sign] of [['left', -1], ['right', 1]]) {
+        const elbow = pose[`${side}Elbow`]; const hand = pose[`${side}Hand`];
+        line([sign * 0.70, 2.55, -0.65], [sign * 0.39, 2.47, -0.37], 0.05);
+        line([sign * 0.39, 2.47, -0.37], [elbow[0], 2.47, elbow[2] - 0.12], 0.05);
+        line([elbow[0], 2.47, elbow[2] - 0.12], [elbow[0], 1.60, elbow[2] - 0.12], 0.05);
+        line([elbow[0], 1.71, elbow[2] - 0.10], [elbow[0], 2.03, elbow[2] - 0.10], 0.10, '#566d57');
+        line([elbow[0], 2.10, elbow[2] - 0.12], hand, 0.032, '#2e4437');
+      }
+    }
+  }
+  if (movement === 'cabletricepsextension') {
+    for (const x of [-0.66, 0.66]) line([x, 0.02, -1.18], [x, 3.18, -1.18], 0.065);
+    line([-0.66, 3.18, -1.18], [0.66, 3.18, -1.18], 0.065);
+    line([-0.66, 0.25, -1.18], [0.66, 0.25, -1.18], 0.055);
+    line([-0.06, 0.25, -1.18], [0.06, 0.25, -1.18], 0.11, '#344c3f');
+    const junction = [0, centerHand[1] + 0.04, centerHand[2] - 0.18];
+    cable([0, 0.25, -1.07], junction);
+    line(junction, pose.leftHand, 0.025, '#344c3f');
+    line(junction, pose.rightHand, 0.025, '#344c3f');
+  }
+  if (movement === 'walking') {
+    panel([[-0.62, 0.16, -1.34], [0.62, 0.16, -1.34], [0.62, 0.16, 1.34], [-0.62, 0.16, 1.34]], '#465c4c');
+    for (const x of [-0.69, 0.69]) {
+      line([x, 0.11, -1.38], [x, 0.11, 1.38], 0.085, '#85937d');
+      line([x, 0.16, 1.06], [x, 1.76, 1.06], 0.052);
+      line([x, 1.53, 0.36], [x, 1.53, 1.09], 0.045, '#344c3f');
+    }
+    line([-0.64, 0.105, -1.32], [0.64, 0.105, -1.32], 0.07, '#85937d');
+    line([-0.65, 1.76, 1.06], [0.65, 1.76, 1.06], 0.045);
+    panel([[-0.52, 1.71, 0.97], [0.52, 1.71, 0.97], [0.52, 1.98, 1.13], [-0.52, 1.98, 1.13]], '#435c4b');
+    panel([[-0.30, 1.78, 1.01], [0.30, 1.78, 1.01], [0.30, 1.92, 1.09], [-0.30, 1.92, 1.09]], '#b3c4a5');
+    for (let index = 0; index < 7; index += 1) {
+      const z = ((index * 0.36 - pose.beltMarker[2] + 1.26 + 2.52) % 2.52) - 1.26;
+      line([-0.60, 0.164, z], [0.60, 0.164, z], 0.008, '#6c806a');
+    }
+  }
+  if (movement === 'cycling') {
+    line([-0.49, 0.07, -0.58], [0.49, 0.07, -0.58], 0.065);
+    line([-0.49, 0.07, 0.90], [0.49, 0.07, 0.90], 0.065);
+    line([0, 0.09, -0.58], [0, 0.09, 0.90], 0.075);
+    line([0, 0.09, -0.48], [0, 1.24, -0.40], 0.055);
+    line([0, 1.0, -0.42], [0, 0.18, 0.67], 0.075, '#788b71');
+    line([0, 0.12, -0.48], pose.crank, 0.085, '#788b71');
+    line(pose.crank, [0, 0.46, 0.62], 0.095, '#788b71');
+    panel([[-0.20, 1.24, -0.60], [0.20, 1.24, -0.60], [0.15, 1.24, -0.23], [-0.15, 1.24, -0.23]], '#3e5244');
+    line([0, 0.14, 0.73], [0, 1.74, 0.73], 0.052);
+    line([0, 1.74, 0.73], [0, 1.96, 0.78], 0.045);
+    line(pose.leftHand, pose.rightHand, 0.038, '#2f4438');
+    for (const hand of [pose.leftHand, pose.rightHand]) line([hand[0], hand[1], hand[2] - 0.13], [hand[0], hand[1], hand[2] + 0.13], 0.04, '#2f4438');
+    line([-0.075, 0.46, 0.62], [0.075, 0.46, 0.62], 0.335, '#52694f');
+    const wheelAngle = Math.atan2(pose.leftPedal[2] - pose.crank[2], pose.leftPedal[1] - pose.crank[1]);
+    for (const x of [-0.085, 0.085]) for (let index = 0; index < 6; index += 1) {
+      const angle = wheelAngle + index * Math.PI / 3;
+      line([x, 0.46, 0.62], [x, 0.46 + Math.cos(angle) * 0.28, 0.62 + Math.sin(angle) * 0.28], 0.013, '#a3b393');
+    }
+    for (const [side, sign] of [['left', -1], ['right', 1]]) {
+      const pedal = pose[`${side}Pedal`];
+      line([sign * 0.20, pose.crank[1], pose.crank[2]], pedal, 0.025, '#2f4438');
+      panel([[pedal[0] - 0.09, pedal[1], pedal[2] - 0.13], [pedal[0] + 0.09, pedal[1], pedal[2] - 0.13], [pedal[0] + 0.09, pedal[1], pedal[2] + 0.13], [pedal[0] - 0.09, pedal[1], pedal[2] + 0.13]], '#2f4438');
+    }
+  }
   if (movement === 'cablecrunch') {
     panel([[-0.7, 0.025, -0.95], [0.7, 0.025, -0.95], [0.7, 0.025, 0.48], [-0.7, 0.025, 0.48]], '#ccd8bc');
     for (const x of [-0.71, 0.71]) line([x, 0.025, 1.38], [x, 2.92, 1.38], 0.065);
@@ -659,7 +817,7 @@ export function getWeightAttachments(movement, pose, equipment, exerciseName = '
     return [{ position: pose.leftHand.map((value, index) => (value + pose.rightHand[index]) / 2), axis: [0, 1, 0] }];
   }
   const hands = movement === 'row' && /single-arm/i.test(exerciseName) ? ['rightHand'] : ['leftHand', 'rightHand'];
-  const axis = /hammer/i.test(exerciseName) || movement === 'chestfly' ? [0, 0, 1] : [1, 0, 0];
+  const axis = /hammer/i.test(exerciseName) || ['chestfly', 'reardeltfly'].includes(movement) ? [0, 0, 1] : [1, 0, 0];
   return hands.map((hand) => ({ position: pose[hand], axis }));
 }
 
@@ -722,7 +880,8 @@ function FallbackPreview({ movement, name, equipment, gender, playingRef, speedR
       <path d={`M ${head[0] - 11.5} ${head[1] - 4} A 11.5 12 0 0 1 ${head[0] + 11.5} ${head[1] - 4} L ${head[0] + 8} ${head[1] - 9} Q ${head[0]} ${head[1] - 13} ${head[0] - 11.5} ${head[1] - 4}`} fill={avatar.hair} />
       {avatar.kind === 'woman' && <circle cx={head[0] - 8} cy={head[1] - 12} r="5" fill={avatar.hair} />}
       {['leftAnkle', 'rightAnkle'].map((name) => {
-        const foot = point(name);
+        const ankle = frame.pose[name];
+        const foot = ['walking', 'cycling'].includes(movement) ? project([ankle[0], ankle[1] - 0.075, ankle[2] + 0.08]) : point(name);
         if (movement === 'calfraise') {
           const ankle = frame.pose[name];
           const toe = project([ankle[0], 0.09, ankle[2] + 0.24]);
@@ -897,7 +1056,8 @@ function createHumanFigure(scene, avatar) {
       });
       feet.forEach(({ key, group }) => {
         group.position.fromArray(pose[key]); group.rotation.set(0, 0, 0);
-        if (movement === 'calfraise') group.rotation.x = Math.atan2(pose[key][1] - 0.13, 0.24);
+        if (['walking', 'cycling'].includes(movement)) group.rotation.set(0, 0, 0);
+        else if (movement === 'calfraise') group.rotation.x = Math.atan2(pose[key][1] - 0.13, 0.24);
         else if (pose[key][1] > 0.32) {
           direction.fromArray(pose[key.replace('Ankle', 'Knee')]).sub(a.fromArray(pose[key])).normalize();
           group.quaternion.setFromUnitVectors(up, direction);
@@ -986,7 +1146,7 @@ export default function ExerciseDemo({ movement = 'squat', name = 'Squat', equip
     scene.add(grid);
     const initialProps = getEquipmentProps(activeMovement, getExercisePose(activeMovement, 0, equipment, name), equipment, name);
     const machineLines = initialProps.lines.map(({ radius, color }) => {
-      const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, 1, 10), new THREE.MeshStandardMaterial({ color, roughness: 0.7, metalness: 0.15 }));
+      const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, 1, radius > 0.15 ? 28 : 10), new THREE.MeshStandardMaterial({ color, roughness: 0.7, metalness: 0.15 }));
       mesh.castShadow = true;
       scene.add(mesh);
       return mesh;
@@ -1031,7 +1191,7 @@ export default function ExerciseDemo({ movement = 'squat', name = 'Squat', equip
     };
     const floorMovement = ['pushup', 'plank', 'bridge', 'benchpress', 'chestfly', 'crunch', 'reversecrunch', 'deadbug', 'bicyclecrunch', 'heeltap', 'mountainclimber', 'birddog', 'sideplank', 'legraise', 'superman'].includes(activeMovement) && !/wall/i.test(name);
     const incline = ['pushup', 'plank'].includes(activeMovement) && /bench|household support/i.test(equipment || '') && !/wall/i.test(name);
-    const tallMachine = ['latpulldown', 'tricepspushdown', 'cablecrunch', 'facepull'].includes(activeMovement);
+    const tallMachine = ['latpulldown', 'tricepspushdown', 'cablecrunch', 'facepull', 'cabletricepsextension', 'walking'].includes(activeMovement);
     const targetHeight = incline || ['benchpress', 'chestfly'].includes(activeMovement) ? 0.98 : floorMovement ? 0.7 : 1.46;
     const cameraOffset = new THREE.Vector3();
     const spherical = new THREE.Spherical();
@@ -1041,7 +1201,7 @@ export default function ExerciseDemo({ movement = 'squat', name = 'Squat', equip
       controls.update();
       controls.target.set(0, targetHeight, 0);
       const polar = floorMovement ? 1.04 : 1.32;
-      cameraOffset.setFromSpherical(new THREE.Spherical(fitDistance, polar, /wall/i.test(name) ? 1.45 : 0.65));
+      cameraOffset.setFromSpherical(new THREE.Spherical(fitDistance, polar, /wall/i.test(name) ? 1.45 : ['walking', 'cycling'].includes(activeMovement) ? 1.05 : 0.65));
       camera.position.copy(controls.target).add(cameraOffset);
       controls.update();
       controls.enableDamping = true;

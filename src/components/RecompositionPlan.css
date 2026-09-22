@@ -1,0 +1,54 @@
+.recomposition-banner { display: flex; align-items: center; gap: 18px; padding: 22px; margin: 22px 0; border: 1px solid #dce5d1; border-radius: 15px; background: linear-gradient(115deg,#f0f4e5,#fafbf4); }
+.recomposition-banner-icon { display: grid; place-items: center; flex-shrink: 0; width: 49px; height: 49px; background: #dde8cc; color: #476344; border-radius: 13px; }
+.recomposition-banner > div { flex: 1; min-width: 0; }
+.recomposition-banner h3 { margin: 7px 0 5px; font-size: 19px; font-weight: 600; letter-spacing: -.45px; color: #304b3b; }
+.recomposition-banner p { margin: 0; font-size: 12px; color: #7b886d; line-height: 1.6; }
+.recomposition-plan { min-width: 0; }
+.recomposition-intro h3 { margin: 10px 0; font-size: 28px; letter-spacing: -1px; font-weight: 500; }
+.recomposition-intro p { color: #7b8471; font-size: 12px; line-height: 1.8; margin: 0; }
+.recomposition-facts { display: flex; gap: 8px; flex-wrap: wrap; margin: 17px 0; }
+.recomposition-facts span { display: inline-flex; gap: 5px; align-items: center; font-size: 11px; color: #557145; background: #f0f4e9; border-radius: 6px; padding: 8px 10px; }
+.recomposition-target-note { padding: 13px 15px; border-left: 3px solid #b3c693; background: #f8faf4; border-radius: 0 8px 8px 0; }
+.recomposition-target-note strong { font-size: 12px; color: #58704d; }
+.recomposition-target-note p { font-size: 11px; line-height: 1.7; color: #7a8470; margin: 5px 0 0; }
+.recomposition-days { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 7px; margin: 24px 0; }
+.recomposition-days button { display: flex; flex-direction: column; align-items: center; gap: 10px; min-width: 0; min-height: 75px; padding: 13px 4px; border: 1px solid #e0e6d9; background: #fff; border-radius: 10px; font: inherit; color: #7c8971; cursor: pointer; }
+.recomposition-days button > span:first-child { font-size: 11px; }
+.recomposition-days button[aria-pressed=true] { border-color: #708d57; background: #edf3e4; color: #466439; }
+.recomposition-day-number { font-size: 16px; font-weight: 600; }
+.recomposition-day-heading { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
+.recomposition-day-heading h3 { font-size: 22px; font-weight: 600; letter-spacing: -.7px; margin: 8px 0 16px; }
+.recomposition-day-heading > span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; color: #849177; font-size: 11px; }
+.recomposition-exercises { list-style: none; padding: 0; margin: 0; }
+.recomposition-exercises li { display: flex; align-items: center; gap: 12px; padding: 15px 0; border-bottom: 1px solid #edf0e7; }
+.recomposition-exercise-number { color: #a6b19a; font-size: 12px; min-width: 20px; }
+.recomposition-exercises li > div { flex: 1; min-width: 0; display: grid; gap: 6px; }
+.recomposition-exercises strong { font-size: 13px; color: #344b3b; font-weight: 600; }
+.recomposition-exercises .exercise-target-summary { font-size: 11px; color: #839174; }
+.recomposition-exercises button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 44px; min-width: 44px; border: none; padding: 8px; color: #6b8654; background: #f2f6e9; border-radius: 8px; font: inherit; font-size: 11px; cursor: pointer; }
+.recomposition-cardio { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px; background: #f8f9f2; font-size: 12px; border-radius: 8px; color: #76886b; }
+.recomposition-cardio select { flex: 1; min-width: 0; min-height: 44px; max-width: 250px; padding: 8px; font: inherit; color: #40563a; background: #fff; border: 1px solid #dce4d3; border-radius: 6px; }
+.recomposition-demo > h4 { margin: 20px 0 8px; font-size: 19px; }
+.recomposition-demo > .exercise-target-summary { font-size: 12px; color: #7f8f72; margin-bottom: 14px; }
+.recomposition-cues { padding-left: 20px; font-size: 12px; line-height: 1.8; color: #7b8771; }
+.recomposition-cues li { margin-bottom: 6px; }
+.recomposition-rest { display: grid; justify-items: center; padding: 36px 24px; text-align: center; border: 1px dashed #d4dfc7; border-radius: 13px; background: #f7f9f1; color: #7c9266; }
+.recomposition-rest h4 { font-size: 20px; margin: 18px 0 10px; color: #4d6941; font-weight: 500; }
+.recomposition-rest p { font-size: 12px; line-height: 1.7; max-width: 360px; margin: 0; }
+.recomposition-apply-note { display: flex; align-items: flex-start; gap: 9px; margin-top: 23px; padding-top: 18px; border-top: 1px solid #e7ebdf; }
+.recomposition-apply-note > svg { flex-shrink: 0; color: #7a935d; margin-top: 2px; }
+.recomposition-apply-note p { margin: 0; color: #849076; font-size: 11px; line-height: 1.8; }
+.recomposition-footer { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+.recomposition-error { color: #a36648; font-size: 12px; }
+@media(max-width:640px) {
+  .recomposition-banner { flex-wrap: wrap; gap: 12px; padding: 16px; }
+  .recomposition-banner-icon { width: 39px; height: 39px; }
+  .recomposition-banner .button { width: 100%; justify-content: center; }
+  .recomposition-banner h3 { font-size: 17px; }
+  .recomposition-days { gap: 4px; }
+  .recomposition-days button { border-radius: 7px; }
+  .recomposition-exercises button span { display: none; }
+  .recomposition-day-heading { align-items: flex-start; flex-wrap: wrap; gap: 0 12px; margin-bottom: 10px; }
+  .recomposition-cardio select { font-size: 16px; }
+  .recomposition-footer > button { flex: 1; justify-content: center; }
+}

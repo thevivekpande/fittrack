@@ -49,6 +49,7 @@ export function SuggestedWeekPreview({ plans, compact = false }) {
       {plan.rest ? <Leaf size={compact ? 15 : 17} strokeWidth={1.6} /> : <Dumbbell size={compact ? 15 : 17} strokeWidth={1.6} />}
       {!compact && <><strong>{plan.title}</strong><small>{plan.rest ? 'Recovery' : plan.intensity === 'light' ? 'Light session' : `${plan.duration} min`}</small></>}
     </div>)}</div>
+    {plans[0]?.programId === 'six-day-recomposition' && <p className="goal-week-edit-note">Follows the 6-Day YouTube Gym Playlist, with Sunday off. Sets, reps, and timed targets are editable FitTrack suggestions; the source sheet does not specify them.</p>}
     <p className="goal-week-edit-note">You can edit every day after saving.</p>
   </section>;
 }

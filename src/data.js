@@ -1,3 +1,5 @@
+import { RECOMPOSITION_VIDEO_LINKS } from './recompositionPlan.js';
+
 export const LEVELS = [
   { id: 'beginner', label: 'Beginner', description: 'Build your foundation · 3 training days' },
   { id: 'medium', label: 'Medium', description: 'Find your rhythm · 5 training days' },
@@ -288,10 +290,35 @@ export const EXERCISES = [
     id: 'cable-face-pull', name: 'Cable face pull', group: 'Shoulders', equipment: 'Cable machine', duration: 5, calories: 23, movement: 'facepull', image: photos.strength,
     instructions: ['Set the cable near face height and hold the rope ends with a comfortable stance.', 'Pull the rope toward your face, separating your hands and keeping your elbows comfortably raised.', 'Extend your arms slowly without shrugging your shoulders or leaning backward.'],
   },
+  {
+    id: 'chest-press-machine', name: 'Chest press machine', group: 'Chest', equipment: 'Chest press machine', duration: 6, calories: 31, movement: 'chestpressmachine', image: photos.strength,
+    instructions: ['Adjust the seat so the handles sit around chest height, with your feet planted and back supported.', 'Press the handles forward through a comfortable range while keeping your shoulders against the pad.', 'Return slowly without letting the weight stack slam or your shoulders roll forward.'],
+  },
+  {
+    id: 'pec-deck', name: 'Pec deck fly', group: 'Chest', equipment: 'Pec deck machine', duration: 5, calories: 24, movement: 'pecdeck', image: photos.strength,
+    instructions: ['Adjust the seat so your upper arms are around shoulder height, with your back supported and forearms against the pads.', 'Hold the handles and bring the pads together in front of your chest with your elbows bent.', 'Open your arms slowly only as far as feels comfortable at your shoulders.'],
+  },
+  {
+    id: 'rear-delt-fly', name: 'Dumbbell rear delt fly', group: 'Shoulders', equipment: 'Dumbbells', duration: 5, calories: 23, movement: 'reardeltfly', image: photos.dumbbells,
+    instructions: ['Hold light dumbbells, soften your knees, and hinge forward with your torso steady.', 'Raise your arms out to the sides with a slight elbow bend, without shrugging your shoulders.', 'Lower slowly and use a comfortable range instead of swinging your torso.'],
+  },
+  {
+    id: 'cable-triceps-extension', name: 'Overhead cable triceps extension', group: 'Triceps', equipment: 'Cable machine', duration: 5, calories: 24, movement: 'cabletricepsextension', image: photos.strength,
+    instructions: ['Face away from a low cable pulley and hold the rope behind your head with your elbows raised.', 'Stand in a stable stance and extend your elbows while keeping your upper arms mostly still.', 'Bend your elbows slowly to return, keeping your ribs relaxed and the movement controlled.'],
+  },
+  {
+    id: 'treadmill-walk', name: 'Treadmill walk', group: 'Cardio', equipment: 'Treadmill', duration: 12, calories: 45, movement: 'walking', image: photos.cardio,
+    instructions: ['Step onto the stopped treadmill, attach the safety clip, and begin at a comfortable walking pace.', 'Walk upright with relaxed shoulders and short, natural steps while looking ahead.', 'Use the controls to slow the belt gradually before stepping off.'],
+  },
+  {
+    id: 'stationary-bike', name: 'Stationary bike', group: 'Cardio', equipment: 'Stationary bike', duration: 12, calories: 45, movement: 'cycling', image: photos.cardio,
+    instructions: ['Adjust the seat so your knee keeps a slight bend at the bottom of each pedal stroke.', 'Pedal at a comfortable pace with your hands resting lightly on the handlebars.', 'Keep your torso relaxed and reduce resistance or pace whenever you need an easier effort.'],
+  },
 ].map((exercise) => ({
   ...exercise,
-  places: /dumbbell|barbell|machine/i.test(exercise.equipment) ? ['gym'] : ['home', 'gym'],
+  places: /dumbbell|barbell|machine|treadmill|stationary bike/i.test(exercise.equipment) ? ['gym'] : ['home', 'gym'],
   ...(exercise.group === 'Core' ? { aliases: ['abs', 'abdominals', 'core'] } : {}),
+  ...(RECOMPOSITION_VIDEO_LINKS[exercise.id] ? { videoLinks: { ...RECOMPOSITION_VIDEO_LINKS[exercise.id] } } : {}),
 }));
 
 export function getExercisesForPlace(place = 'gym') {

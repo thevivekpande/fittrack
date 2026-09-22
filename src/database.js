@@ -2,6 +2,7 @@ import { useEffect, useSyncExternalStore } from 'react';
 import { EXERCISES, LEVELS, MUSCLE_GROUPS } from './data.js';
 import { FITNESS_GOALS } from './goals.js';
 import { normalizeGender } from './profile.js';
+import { getExerciseTarget, normalizeExerciseTargets } from './workoutTargets.js';
 
 const DATABASE_NAME = 'fittrack';
 const STORE_NAME = 'workspace';
@@ -78,16 +79,23 @@ function validatePlan(value, place = null) {
     const exercise = exercises.get(id);
     return exercise && (!place || !Array.isArray(exercise.places) || exercise.places.includes(place));
   }));
-  if (!exerciseIds.length) return null;
+  // A deliberately empty rest day is valid. A corrupted exercise list that
+  // loses every catalog entry must not silently become a rest day.
+  if (!exerciseIds.length && !(value.rest === true && value.exerciseIds.length === 0)) return null;
   return {
     ...value,
     title: value.title.trim(),
     exerciseIds,
     sets: value.sets,
     reps: isText(String(value.reps ?? ''), 40) ? String(value.reps) : '10',
-    duration: isFiniteNumber(value.duration) && value.duration >= 0 ? value.duration : exerciseIds.reduce((sum, id) => sum + exercises.get(id).duration, 0),
+    duration: !exerciseIds.length ? 0 : isFiniteNumber(value.duration) && value.duration >= 0 ? value.duration : exerciseIds.reduce((sum, id) => sum + exercises.get(id).duration, 0),
     focus: typeof value.focus === 'string' ? value.focus : 'Your custom workout',
     rest: value.rest === true,
+    ...(value.exerciseTargets !== undefined && { exerciseTargets: normalizeExerciseTargets(value.exerciseTargets, exerciseIds) }),
+    ...(value.exerciseVideoLinks !== undefined && { exerciseVideoLinks: Object.fromEntries(exerciseIds.flatMap(id => {
+      const links = value.exerciseVideoLinks?.[id];
+      return isObject(links) ? [[id, { ...links }]] : [];
+    })) }),
   };
 }
 
@@ -96,12 +104,13 @@ export function validateSession(value) {
     || !Array.isArray(value.plan.exerciseIds) || !Number.isInteger(value.exerciseIndex) || value.exerciseIndex < 0 || value.exerciseIndex >= value.plan.exerciseIds.length
     || !isFiniteNumber(value.elapsed) || value.elapsed < 0 || !isObject(value.completed)) return null;
   const plan = validatePlan(value.plan, ['home', 'gym'].includes(value.plan.trainingPlace) ? value.plan.trainingPlace : null);
-  if (!plan) return null;
+  if (!plan || !plan.exerciseIds.length) return null;
   const selectedId = value.plan.exerciseIds[value.exerciseIndex];
   const selectedIndex = plan.exerciseIds.indexOf(selectedId);
   const completed = {};
   for (const id of plan.exerciseIds) {
-    completed[id] = unique((Array.isArray(value.completed[id]) ? value.completed[id] : []).filter((set) => Number.isInteger(set) && set >= 0 && set < plan.sets));
+    const sets = getExerciseTarget(plan, exercises.get(id)).sets;
+    completed[id] = unique((Array.isArray(value.completed[id]) ? value.completed[id] : []).filter((set) => Number.isInteger(set) && set >= 0 && set < sets));
   }
   return { ...value, plan, exerciseIndex: selectedIndex < 0 ? Math.min(value.exerciseIndex, plan.exerciseIds.length - 1) : selectedIndex, completed };
 }
@@ -130,15 +139,16 @@ function validateWeeklyPlans(values) {
       const value = week.find((plan) => plan?.day === day);
       // Weekly templates represent a complete user-selected schedule. Reject
       // an invalid selection instead of silently substituting its exercises.
-      if (!value || !Array.isArray(value.exerciseIds) || !value.exerciseIds.length
+      if (!value || !Array.isArray(value.exerciseIds) || (!value.exerciseIds.length && value.rest !== true)
         || unique(value.exerciseIds).length !== value.exerciseIds.length
         || value.exerciseIds.some((id) => !exercises.get(id)?.places?.includes(match[1]))) return null;
       const plan = validatePlan(value, match[1]);
       if (!plan) return null;
       const groups = value.muscleGroups === undefined
-        ? unique(plan.exerciseIds.map((id) => exercises.get(id).group))
+        ? !plan.exerciseIds.length && plan.rest ? ['Mobility'] : unique(plan.exerciseIds.map((id) => exercises.get(id).group))
         : Array.isArray(value.muscleGroups) ? unique(value.muscleGroups) : null;
       if (!groups?.length || groups.some((group) => !muscleGroups.has(group))) return null;
+      if (!plan.exerciseIds.length && (groups.length !== 1 || groups[0] !== 'Mobility')) return null;
       return { ...plan, day, muscleGroups: groups, custom: true };
     });
     if (normalizedWeek.every(Boolean)) result[key] = normalizedWeek;
