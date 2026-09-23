@@ -3,16 +3,12 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import * as THREE from 'three';
 import { EXERCISES } from '../src/data.js';
+import { MUSCLE_REGIONS, getExerciseMuscles } from '../src/muscleData.js';
 
 const source = await readFile(new URL('../src/components/ExerciseDemo.jsx', import.meta.url), 'utf8');
-const pureSource = source.slice(source.indexOf('export const SUPPORTED_MOVEMENTS'), source.indexOf('function FallbackPreview'));
+const pureSource = source.slice(source.indexOf('export const SUPPORTED_MOVEMENTS'), source.indexOf('export default function ExerciseDemo'));
 const { getExercisePose, getAvatarStyle, getEquipmentProps, getWeightAttachments, SUPPORTED_MOVEMENTS } = await import(`data:text/javascript;base64,${Buffer.from(pureSource).toString('base64')}`);
-const modelSource = source.slice(source.indexOf('function createHumanFigure'), source.indexOf('export default function ExerciseDemo'));
-const segments = [
-  ['leftShoulder', 'leftElbow'], ['leftElbow', 'leftHand'], ['rightShoulder', 'rightElbow'], ['rightElbow', 'rightHand'],
-  ['leftHip', 'leftKnee'], ['leftKnee', 'leftAnkle'], ['rightHip', 'rightKnee'], ['rightKnee', 'rightAnkle'],
-];
-const createHumanFigure = new Function('THREE', 'SEGMENTS', `${modelSource}; return createHumanFigure;`)(THREE, segments);
+import { createHumanFigure } from '../src/components/HumanFigure.js';
 
 test('avatar preference uses requested presentation and a neutral fallback', () => {
   assert.equal(getAvatarStyle('woman').kind, 'woman');
@@ -179,4 +175,61 @@ test('all six planner demos keep stable equipment geometry throughout the loop',
       assert.ok(props.panels.every(({ points }) => points.length === 4 && points.every((point) => point.every(Number.isFinite))));
     }
   }
+});
+
+
+test('every targeted muscle has an attached region on every avatar', () => {
+  for (const gender of ['woman', 'man', null]) {
+    const scene = new THREE.Scene();
+    const human = createHumanFigure(scene, getAvatarStyle(gender));
+    const regions = new Set();
+    scene.traverse(object => {
+      if (object.userData.muscleRegion) regions.add(object.userData.muscleRegion);
+      if (object.geometry) {
+        assert.ok([...object.geometry.attributes.position.array].every(Number.isFinite), 'finite sculpted geometry');
+      }
+    });
+    assert.deepEqual([...regions].sort(), Object.keys(MUSCLE_REGIONS).sort());
+    for (const exercise of EXERCISES) {
+      const targets = getExerciseMuscles(exercise);
+      human.setHighlights(targets);
+      const actual = { primary: new Set(), secondary: new Set() };
+      scene.traverse(object => {
+        if (actual[object.userData.highlightRole]) actual[object.userData.highlightRole].add(object.userData.muscleRegion);
+      });
+      assert.deepEqual([...actual.primary].sort(), [...targets.primary].sort(), exercise.id);
+      assert.deepEqual([...actual.secondary].sort(), [...targets.secondary].sort(), exercise.id);
+    }
+  }
+});
+
+test('muscle toggles and exercise changes clear previous highlights without rebuilding the figure', () => {
+  const scene = new THREE.Scene();
+  const human = createHumanFigure(scene, getAvatarStyle('man'), { primary: ['biceps'], secondary: ['forearms'] });
+  const objects = [];
+  scene.traverse(object => objects.push(object));
+  const regions = objects.filter(object => object.userData.muscleRegion);
+  assert.ok(regions.some(object => object.userData.highlightRole === 'primary'));
+  human.setHighlights({ primary: ['biceps'], secondary: ['forearms'] }, false);
+  assert.ok(regions.every(object => !['primary', 'secondary'].includes(object.userData.highlightRole)));
+  human.setHighlights({ primary: ['triceps'], secondary: [] });
+  assert.ok(regions.filter(object => object.userData.muscleRegion === 'triceps').every(object => object.userData.highlightRole === 'primary'));
+  assert.ok(regions.filter(object => object.userData.muscleRegion === 'biceps').every(object => object.userData.highlightRole !== 'primary'));
+  const after = [];
+  scene.traverse(object => after.push(object));
+  assert.deepEqual(after, objects, 'highlight changes reuse existing scene objects');
+});
+
+
+test('removing a preview disposes previously used highlight materials and removes the figure', () => {
+  const scene = new THREE.Scene();
+  const human = createHumanFigure(scene, getAvatarStyle('woman'), { primary: ['abs'], secondary: ['obliques'] });
+  const materials = new Set();
+  scene.traverse(object => { if (object.material) materials.add(object.material); });
+  const disposed = new Set();
+  materials.forEach(material => material.addEventListener('dispose', () => disposed.add(material)));
+  human.setHighlights({ primary: ['abs'], secondary: ['obliques'] }, false);
+  human.dispose();
+  assert.equal(scene.children.length, 0);
+  assert.equal(disposed.size, materials.size);
 });

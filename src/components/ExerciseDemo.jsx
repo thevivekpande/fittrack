@@ -1,17 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { Pause, Play, RotateCw, Scan } from 'lucide-react';
+import { Activity, Pause, Play, RotateCw, Scan } from 'lucide-react';
+import { createHumanFigure } from './HumanFigure';
+import ExerciseIllustration from './ExerciseIllustration';
+import { getExerciseMuscles, MUSCLE_REGIONS } from '../muscleData';
 import './ExerciseDemo.css';
 
 export const SUPPORTED_MOVEMENTS = ['squat', 'pushup', 'curl', 'press', 'lunge', 'plank', 'row', 'jumpingjack', 'benchpress', 'latpulldown', 'cablerow', 'legpress', 'lateralraise', 'tricepspushdown', 'deadlift', 'bridge', 'chestfly', 'frontraise', 'tricepsextension', 'legextension', 'legcurl', 'calfraise', 'crunch', 'reversecrunch', 'deadbug', 'bicyclecrunch', 'heeltap', 'mountainclimber', 'cablecrunch', 'birddog', 'sideplank', 'legraise', 'superman', 'facepull', 'chestpressmachine', 'pecdeck', 'reardeltfly', 'cabletricepsextension', 'walking', 'cycling'];
 const MOVEMENTS = new Set(SUPPORTED_MOVEMENTS);
-const SEGMENTS = [
-  ['leftShoulder', 'leftElbow'], ['leftElbow', 'leftHand'],
-  ['rightShoulder', 'rightElbow'], ['rightElbow', 'rightHand'],
-  ['leftHip', 'leftKnee'], ['leftKnee', 'leftAnkle'],
-  ['rightHip', 'rightKnee'], ['rightKnee', 'rightAnkle'],
-];
 const CUES = {
   squat: 'Sit your hips back. Keep your chest lifted.',
   pushup: 'Keep a straight line from your shoulders to your heels.',
@@ -821,271 +818,38 @@ export function getWeightAttachments(movement, pose, equipment, exerciseName = '
   return hands.map((hand) => ({ position: pose[hand], axis }));
 }
 
-function FallbackPreview({ movement, name, equipment, gender, playingRef, speedRef, viewRef, zoomRef }) {
-  const [frame, setFrame] = useState({ pose: getExercisePose(movement, 0, equipment, name), angle: 0.5 });
-  const pointersRef = useRef(new Map());
-  const avatar = getAvatarStyle(gender);
-  useEffect(() => {
-    let request;
-    let lastTime;
-    let lastPaint = 0;
-    let elapsed = 0;
-    const animate = (time) => {
-      if (lastTime !== undefined && playingRef.current) elapsed += Math.min((time - lastTime) / 1000, 0.06) * speedRef.current;
-      lastTime = time;
-      if (time - lastPaint > 45) {
-        setFrame({ pose: getExercisePose(movement, elapsed, equipment, name), angle: viewRef.current });
-        lastPaint = time;
-      }
-      request = requestAnimationFrame(animate);
-    };
-    request = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(request);
-  }, [movement, name, equipment, playingRef, speedRef, viewRef]);
-  const project = ([x, y, z]) => [250 + (x * Math.cos(frame.angle) + z * Math.sin(frame.angle)) * 72 * zoomRef.current, 265 - y * 72 * zoomRef.current + (z * Math.cos(frame.angle) - x * Math.sin(frame.angle)) * 12 * zoomRef.current];
-  const point = (name) => project(frame.pose[name]);
-  const headAxis = frame.pose.head.map((value, index) => value - frame.pose.shoulder[index]);
-  const headDistance = Math.hypot(...headAxis) || 1;
-  const head = project(frame.pose.head.map((value, index) => value - headAxis[index] / headDistance * 0.09));
-  const body = ['leftShoulder', 'rightShoulder', 'rightHip', 'leftHip'].map((name) => point(name).join(',')).join(' ');
-  const props = getEquipmentProps(movement, frame.pose, equipment, name);
-  const handWeights = getWeightAttachments(movement, frame.pose, equipment, name);
-  const drag = (event) => {
-    const previous = pointersRef.current.get(event.pointerId);
-    if (!previous) return;
-    viewRef.current += (event.clientX - previous[0]) * 0.012;
-    pointersRef.current.set(event.pointerId, [event.clientX, event.clientY]);
-  };
-  return (
-    <svg className="exercise-demo__fallback" viewBox="0 0 500 300" role="img" aria-label={`Animated ${name} movement illustration. Drag to rotate.`} data-avatar={avatar.kind} data-azimuth={frame.angle.toFixed(4)} onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); pointersRef.current.set(event.pointerId, [event.clientX, event.clientY]); }} onPointerMove={drag} onPointerUp={(event) => pointersRef.current.delete(event.pointerId)} onPointerCancel={(event) => pointersRef.current.delete(event.pointerId)}>
-      <ellipse cx="250" cy="266" rx="138" ry="24" fill="#d7e0cc" />
-      {[205, 225, 245, 265, 285].map((y) => <path key={y} d={`M 50 ${y} H 450`} stroke="#dde4d5" strokeWidth="1" />)}
-      {props.panels.map(({ points, color }, index) => <polygon key={`panel-${index}`} points={points.map((item) => project(item).join(',')).join(' ')} fill={color} stroke="#53674f" strokeWidth="3" strokeLinejoin="round" />)}
-      {props.lines.map(({ from, to, radius, color }, index) => {
-        const a = project(from); const b = project(to);
-        return <line key={`prop-${index}`} x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} stroke={color} strokeWidth={Math.max(1.5, radius * 130)} strokeLinecap="round" />;
-      })}
-      {SEGMENTS.map(([from, to]) => {
-        const a = point(from); const b = point(to);
-        const upperLeg = from.includes('Hip'); const lowerLeg = from.includes('Knee');
-        return <line key={`${from}-${to}`} x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} stroke={upperLeg || (lowerLeg && avatar.leggings) ? avatar.bottoms : avatar.skin} strokeWidth={(upperLeg ? 17 : lowerLeg ? 12 : 10) * avatar.limbScale} strokeLinecap="round" />;
-      })}
-      <polygon points={body} fill={avatar.top} stroke={avatar.top} strokeWidth="6" strokeLinejoin="round" />
-      <line x1={point('shoulder')[0]} y1={point('shoulder')[1]} x2={head[0]} y2={head[1]} stroke={avatar.skin} strokeWidth="8" />
-      {['leftElbow', 'rightElbow', 'leftKnee', 'rightKnee'].map((name) => {
-        const joint = point(name);
-        return <circle key={name} cx={joint[0]} cy={joint[1]} r="5" fill={name.includes('Knee') && avatar.leggings ? avatar.bottoms : avatar.skin} />;
-      })}
-      <ellipse cx={head[0]} cy={head[1]} rx="11.5" ry="14.5" fill={avatar.skin} />
-      <path d={`M ${head[0] - 11.5} ${head[1] - 4} A 11.5 12 0 0 1 ${head[0] + 11.5} ${head[1] - 4} L ${head[0] + 8} ${head[1] - 9} Q ${head[0]} ${head[1] - 13} ${head[0] - 11.5} ${head[1] - 4}`} fill={avatar.hair} />
-      {avatar.kind === 'woman' && <circle cx={head[0] - 8} cy={head[1] - 12} r="5" fill={avatar.hair} />}
-      {['leftAnkle', 'rightAnkle'].map((name) => {
-        const ankle = frame.pose[name];
-        const foot = ['walking', 'cycling'].includes(movement) ? project([ankle[0], ankle[1] - 0.075, ankle[2] + 0.08]) : point(name);
-        if (movement === 'calfraise') {
-          const ankle = frame.pose[name];
-          const toe = project([ankle[0], 0.09, ankle[2] + 0.24]);
-          return <line key={name} x1={foot[0]} y1={foot[1]} x2={toe[0]} y2={toe[1]} stroke="#faf9ee" strokeWidth="12" strokeLinecap="round" />;
-        }
-        return <rect key={name} x={foot[0] - 9} y={foot[1] - 5} width="24" height="12" rx="5" fill="#faf9ee" />;
-      })}
-      {handWeights.map(({ position, axis, kind }, index) => {
-        const half = kind === 'barbell' ? 1.05 : 0.17;
-        const a = project(position.map((value, axisIndex) => value - axis[axisIndex] * half));
-        const b = project(position.map((value, axisIndex) => value + axis[axisIndex] * half));
-        const length = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
-        const plateSize = kind === 'barbell' ? 17 : 7;
-        const perpendicular = [-(b[1] - a[1]) / length * plateSize, (b[0] - a[0]) / length * plateSize];
-        return <g key={index} stroke="#263e33" strokeWidth="5" strokeLinecap="round">
-          <line x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} />
-          {[a, b].map((end, endIndex) => <line key={endIndex} x1={end[0] - perpendicular[0]} y1={end[1] - perpendicular[1]} x2={end[0] + perpendicular[0]} y2={end[1] + perpendicular[1]} />)}
-        </g>;
-      })}
-    </svg>
-  );
-}
-
-function createHumanFigure(scene, avatar) {
-  const figure = new THREE.Group();
-  figure.name = `athletic-human-${avatar.kind}`;
-  scene.add(figure);
-  const skin = new THREE.MeshStandardMaterial({ color: avatar.skin, roughness: 0.82 });
-  const top = new THREE.MeshStandardMaterial({ color: avatar.top, roughness: 0.94 });
-  const bottoms = new THREE.MeshStandardMaterial({ color: avatar.bottoms, roughness: 0.94 });
-  const hair = new THREE.MeshStandardMaterial({ color: avatar.hair, roughness: 1 });
-  const shoe = new THREE.MeshStandardMaterial({ color: '#f2efe6', roughness: 0.8 });
-  const sole = new THREE.MeshStandardMaterial({ color: '#d6d9ce', roughness: 0.96 });
-  const trim = new THREE.MeshStandardMaterial({ color: '#b2c39b', roughness: 0.88 });
-  const faceDetail = new THREE.MeshStandardMaterial({ color: '#4a3930', roughness: 1 });
-  const eyeWhite = new THREE.MeshStandardMaterial({ color: '#e1d6c8', roughness: 0.9 });
-  const up = new THREE.Vector3(0, 1, 0);
-  const axisX = new THREE.Vector3(); const axisY = new THREE.Vector3(); const axisZ = new THREE.Vector3();
-  const matrix = new THREE.Matrix4();
-  const a = new THREE.Vector3(); const b = new THREE.Vector3(); const direction = new THREE.Vector3();
-  const sphereGeometry = new THREE.SphereGeometry(1, 20, 14);
-  function ellipsoid(parent, material, scale, position = [0, 0, 0]) {
-    const mesh = new THREE.Mesh(sphereGeometry, material);
-    mesh.scale.fromArray(scale); mesh.position.fromArray(position); mesh.castShadow = true;
-    parent.add(mesh); return mesh;
-  }
-  function taperedLimb(upper, lower, material) {
-    const points = [[0, -0.515], [upper * 0.66, -0.49], [upper, -0.35], [upper * 0.94, -0.08], [lower * 1.03, 0.31], [lower * 0.7, 0.48], [0, 0.515]].map(([radius, y]) => new THREE.Vector2(radius, y));
-    const mesh = new THREE.Mesh(new THREE.LatheGeometry(points, 20), material);
-    mesh.castShadow = true; figure.add(mesh); return mesh;
-  }
-  function connect(mesh, from, to) {
-    a.fromArray(from); b.fromArray(to); direction.subVectors(b, a);
-    mesh.position.copy(a).add(b).multiplyScalar(0.5);
-    mesh.scale.set(1, direction.length(), 1);
-    mesh.quaternion.setFromUnitVectors(up, direction.normalize());
-  }
-  const limbs = SEGMENTS.map(([from, to]) => {
-    const thigh = from.includes('Hip'); const calf = from.includes('Knee'); const upperArm = from.includes('Shoulder');
-    const upper = (thigh ? 0.148 : calf ? 0.106 : upperArm ? 0.107 : 0.081) * avatar.limbScale;
-    const lower = (thigh ? 0.103 : calf ? 0.059 : upperArm ? 0.074 : 0.046) * avatar.limbScale;
-    const mesh = taperedLimb(upper, lower, (thigh || calf) && avatar.leggings ? bottoms : skin);
-    const shorts = thigh && !avatar.leggings ? taperedLimb(upper * 1.1, upper * 0.97, bottoms) : null;
-    let sleeve = null;
-    if (upperArm && avatar.kind !== 'woman') {
-      sleeve = new THREE.Mesh(new THREE.CylinderGeometry(upper * 1.03, upper * 1.15, 1, 20, 1, true), top);
-      sleeve.name = `${from}Sleeve`;
-      sleeve.castShadow = true;
-      figure.add(sleeve);
-    }
-    return { from, to, mesh, shorts, sleeve };
-  });
-  const torsoGroup = new THREE.Group(); torsoGroup.name = 'torso'; figure.add(torsoGroup);
-  const torsoPoints = [[avatar.hipWidth * 0.79, 0], [avatar.waistWidth, 0.16], [avatar.waistWidth * 0.98, 0.32], [avatar.chestWidth * 0.92, 0.58], [avatar.chestWidth, 0.80], [avatar.chestWidth * 0.97, 0.94], [avatar.chestWidth * 0.72, 1.015], [0.12, 1.07]].map(([radius, y]) => new THREE.Vector2(radius, y));
-  const torso = new THREE.Mesh(new THREE.LatheGeometry(torsoPoints, 28), top);
-  torso.scale.z = 0.64; torso.castShadow = true; torsoGroup.add(torso);
-  const hips = ellipsoid(figure, bottoms, [avatar.hipWidth, 0.19, 0.195]);
-  const neck = taperedLimb(0.075, 0.068, skin);
-  const shoulderBridges = ['leftShoulder', 'rightShoulder'].map((key) => ({ key, mesh: taperedLimb(0.084, 0.105 * avatar.limbScale, avatar.kind === 'woman' ? skin : top) }));
-  const jointMeshes = ['leftShoulder', 'rightShoulder', 'leftElbow', 'rightElbow', 'leftKnee', 'rightKnee'].map((key) => {
-    const shoulder = key.includes('Shoulder'); const knee = key.includes('Knee');
-    const material = shoulder && avatar.kind !== 'woman' ? top : knee && avatar.leggings ? bottoms : skin;
-    const radius = (shoulder ? 0.105 : knee ? 0.093 : 0.069) * avatar.limbScale;
-    return { key, mesh: ellipsoid(figure, material, [radius, radius, radius * 0.95]) };
-  });
-  const hands = ['leftHand', 'rightHand'].map((key, index) => {
-    const group = new THREE.Group(); group.name = key; figure.add(group);
-    ellipsoid(group, skin, [0.06, 0.084, 0.037]);
-    ellipsoid(group, skin, [0.025, 0.048, 0.024], [(index ? -1 : 1) * 0.055, 0.006, 0.021]);
-    for (const x of [-0.037, -0.012, 0.013, 0.038]) ellipsoid(group, skin, [0.013, 0.035, 0.021], [x, -0.057, 0.016]);
-    const wrist = ellipsoid(figure, skin, [0.045, 0.05, 0.042]);
-    wrist.visible = false;
-    return { key, group, wrist };
-  });
-  const headGroup = new THREE.Group(); headGroup.name = 'head'; figure.add(headGroup);
-  ellipsoid(headGroup, skin, [0.165, 0.215, 0.169]);
-  ellipsoid(headGroup, skin, [0.113, 0.091, 0.126], [0, -0.11, 0.023]);
-  ellipsoid(headGroup, skin, [0.027, 0.039, 0.028], [0, 0.008, 0.165]);
-  [-1, 1].forEach((side) => {
-    ellipsoid(headGroup, skin, [0.025, 0.047, 0.025], [side * 0.162, -0.002, -0.002]);
-    ellipsoid(headGroup, eyeWhite, [0.03, 0.012, 0.008], [side * 0.059, 0.045, 0.152]);
-    ellipsoid(headGroup, faceDetail, [0.010, 0.010, 0.006], [side * 0.059, 0.044, 0.159]);
-    ellipsoid(headGroup, hair, [0.031, 0.007, 0.007], [side * 0.059, 0.071, 0.149]);
-  });
-  ellipsoid(headGroup, faceDetail, [0.038, 0.005, 0.006], [0, -0.073, 0.149]);
-  const scalp = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 14, 0, Math.PI * 2, 0, Math.PI * 0.55), hair);
-  scalp.scale.set(0.169, 0.216, 0.172); scalp.position.set(0, 0.023, -0.011); scalp.castShadow = true; headGroup.add(scalp);
-  if (avatar.kind === 'woman') {
-    ellipsoid(headGroup, hair, [0.091, 0.087, 0.099], [0, 0.108, -0.188]);
-    ellipsoid(headGroup, trim, [0.067, 0.05, 0.025], [0, 0.096, -0.164]);
-  } else {
-    ellipsoid(headGroup, hair, [0.116, 0.068, 0.128], [0, 0.18, 0.015]);
-  }
-  const feet = ['leftAnkle', 'rightAnkle'].map((key) => {
-    const group = new THREE.Group(); group.name = key; figure.add(group);
-    ellipsoid(group, sole, [0.109, 0.025, 0.207], [0, -0.105, 0.079]);
-    ellipsoid(group, shoe, [0.099, 0.067, 0.187], [0, -0.06, 0.074]);
-    ellipsoid(group, trim, [0.079, 0.043, 0.042], [0, -0.035, -0.07]);
-    for (const z of [0.04, 0.07, 0.10]) ellipsoid(group, sole, [0.064, 0.006, 0.009], [0, 0.005, z]);
-    return { key, group };
-  });
-  const supineMovements = new Set(['benchpress', 'chestfly', 'bridge', 'crunch', 'reversecrunch', 'deadbug', 'bicyclecrunch', 'heeltap', 'legraise']);
-  function orient(group, along, across, faceUp = false) {
-    axisY.fromArray(along).normalize();
-    axisX.fromArray(across).projectOnPlane(axisY).normalize();
-    if (faceUp) axisX.negate();
-    axisZ.crossVectors(axisX, axisY).normalize();
-    matrix.makeBasis(axisX, axisY, axisZ); group.quaternion.setFromRotationMatrix(matrix);
-  }
-  return {
-    update(pose, movement) {
-      const bodyAxis = pose.shoulder.map((value, index) => value - pose.hip[index]);
-      const across = pose.rightShoulder.map((value, index) => value - pose.leftShoulder[index]);
-      const faceUp = supineMovements.has(movement);
-      torsoGroup.position.fromArray(pose.hip);
-      orient(torsoGroup, bodyAxis, across, faceUp);
-      torsoGroup.scale.set(1, Math.hypot(...bodyAxis), 1);
-      hips.position.fromArray(pose.hip); hips.quaternion.copy(torsoGroup.quaternion);
-      limbs.forEach(({ from, to, mesh, shorts, sleeve }) => {
-        connect(mesh, pose[from], pose[to]);
-        if (shorts) connect(shorts, pose[from], pose[from].map((value, index) => value + (pose[to][index] - value) * 0.64));
-        if (sleeve) connect(sleeve, pose[from], pose[from].map((value, index) => value + (pose[to][index] - value) * 0.46));
-      });
-      jointMeshes.forEach(({ key, mesh }) => mesh.position.fromArray(pose[key]));
-      const headAxis = pose.head.map((value, index) => value - pose.shoulder[index]);
-      const headDistance = Math.hypot(...headAxis) || 1;
-      const visualHead = pose.head.map((value, index) => value - headAxis[index] / headDistance * 0.09);
-      const neckEnd = visualHead.map((value, index) => value - headAxis[index] / headDistance * 0.16);
-      connect(neck, pose.shoulder, neckEnd);
-      shoulderBridges.forEach(({ key, mesh }) => {
-        const inner = pose.shoulder.map((value, index) => value + (pose[key][index] - value) * 0.25 + headAxis[index] / headDistance * 0.04);
-        connect(mesh, inner, pose[key]);
-      });
-      headGroup.position.fromArray(visualHead); orient(headGroup, headAxis, across, faceUp);
-      hands.forEach(({ key, group, wrist }) => {
-        group.position.fromArray(pose[key]);
-        direction.fromArray(pose[key.replace('Hand', 'Elbow')]).sub(a.fromArray(pose[key])).normalize();
-        group.quaternion.setFromUnitVectors(up, direction);
-        const supporting = ['pushup', 'plank', 'mountainclimber'].includes(movement) || (['birddog', 'sideplank'].includes(movement) && pose[key][1] < 0.25);
-        wrist.visible = supporting;
-        if (supporting) {
-          const wall = movement === 'pushup' && pose[key][1] > 1.6;
-          group.rotation.set(wall ? 0 : -Math.PI / 2, 0, wall ? Math.PI : 0);
-          if (wall) group.position.z += 0.04;
-          else { group.position.y -= 0.055; group.position.z += 0.035; }
-          a.fromArray(pose[key]);
-          direction.copy(group.position).sub(a);
-          wrist.position.copy(a).add(group.position).multiplyScalar(0.5);
-          wrist.scale.set(0.045, direction.length() / 2 + 0.027, 0.042);
-          wrist.quaternion.setFromUnitVectors(up, direction.normalize());
-        }
-      });
-      feet.forEach(({ key, group }) => {
-        group.position.fromArray(pose[key]); group.rotation.set(0, 0, 0);
-        if (['walking', 'cycling'].includes(movement)) group.rotation.set(0, 0, 0);
-        else if (movement === 'calfraise') group.rotation.x = Math.atan2(pose[key][1] - 0.13, 0.24);
-        else if (pose[key][1] > 0.32) {
-          direction.fromArray(pose[key.replace('Ankle', 'Knee')]).sub(a.fromArray(pose[key])).normalize();
-          group.quaternion.setFromUnitVectors(up, direction);
-        } else if (['pushup', 'plank', 'mountainclimber', 'birddog', 'superman'].includes(movement)) group.rotation.x = 0.85;
-      });
-    },
-  };
-}
-
-export default function ExerciseDemo({ movement = 'squat', name = 'Squat', equipment = undefined, gender = null }) {
+export default function ExerciseDemo({ movement = 'squat', name = 'Squat', equipment = undefined, gender = null, exerciseId, group }) {
   const normalized = String(movement).toLowerCase().replace(/[^a-z]/g, '');
   const activeMovement = MOVEMENTS.has(normalized) ? normalized : 'squat';
   const avatar = getAvatarStyle(gender);
+  const targets = useMemo(() => getExerciseMuscles({id:exerciseId,movement:normalized,name,group,equipment}), [exerciseId,normalized,name,group,equipment]);
+  const posteriorMuscles = new Set(['triceps','rearDelts','lats','upperBack','lowerBack','glutes','hamstrings','calves']);
+  const startBehind = targets.primary.length > 0 && targets.primary.every(id => posteriorMuscles.has(id));
+  const defaultAngle = /wall/i.test(name) ? 1.45 : ['walking','cycling'].includes(activeMovement) ? 1.05 : startBehind ? Math.PI - 0.65 : 0.65;
+  const [showMuscles,setShowMuscles] = useState(true);
+  const humanRef = useRef(null);
+  const muscleVisibilityRef = useRef(true);
   const mountRef = useRef(null);
   const [playing, setPlaying] = useState(() => typeof window === 'undefined' || !window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const [speed, setSpeed] = useState(1);
   const [fallback, setFallback] = useState(false);
   const playingRef = useRef(playing);
   const speedRef = useRef(speed);
-  const viewRef = useRef(0.57);
+  const viewRef = useRef(defaultAngle);
   const zoomRef = useRef(1);
   const cameraActionsRef = useRef(null);
   useEffect(() => { playingRef.current = playing; }, [playing]);
   useEffect(() => { speedRef.current = speed; }, [speed]);
+  useEffect(() => {
+    muscleVisibilityRef.current = showMuscles;
+    humanRef.current?.setHighlights(targets,showMuscles);
+  }, [targets,showMuscles]);
 
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return undefined;
+    viewRef.current = defaultAngle;
+    zoomRef.current = 1;
     let renderer;
     try {
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
@@ -1100,7 +864,7 @@ export default function ExerciseDemo({ movement = 'squat', name = 'Squat', equip
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.12;
-    renderer.domElement.setAttribute('aria-label', `3D ${name} movement demonstration. Drag to rotate, pinch to zoom. Arrow keys rotate; plus and minus zoom; Home resets the view.`);
+    renderer.domElement.setAttribute('aria-label', `3D ${name} movement demonstration. ${targets.primary.length ? `Primary muscles: ${targets.primary.map(id => MUSCLE_REGIONS[id]).join(', ')}. ` : ''}Drag to rotate, pinch to zoom. Arrow keys rotate; plus and minus zoom; Home resets the view.`);
     renderer.domElement.setAttribute('role', 'img');
     renderer.domElement.tabIndex = 0;
     renderer.domElement.dataset.avatar = avatar.kind;
@@ -1160,7 +924,9 @@ export default function ExerciseDemo({ movement = 'squat', name = 'Squat', equip
       scene.add(mesh);
       return mesh;
     });
-    const human = createHumanFigure(scene, avatar);
+    const human = createHumanFigure(scene, avatar, targets);
+    humanRef.current = human;
+    human.setHighlights(targets,muscleVisibilityRef.current);
     const weights = ['leftHand', 'rightHand'].map((key) => {
       const group = new THREE.Group();
       const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.35, 8), weightMaterial);
@@ -1201,7 +967,7 @@ export default function ExerciseDemo({ movement = 'squat', name = 'Squat', equip
       controls.update();
       controls.target.set(0, targetHeight, 0);
       const polar = floorMovement ? 1.04 : 1.32;
-      cameraOffset.setFromSpherical(new THREE.Spherical(fitDistance, polar, /wall/i.test(name) ? 1.45 : ['walking', 'cycling'].includes(activeMovement) ? 1.05 : 0.65));
+      cameraOffset.setFromSpherical(new THREE.Spherical(fitDistance, polar, defaultAngle));
       camera.position.copy(controls.target).add(cameraOffset);
       controls.update();
       controls.enableDamping = true;
@@ -1231,7 +997,20 @@ export default function ExerciseDemo({ movement = 'squat', name = 'Squat', equip
     controls.addEventListener('start', onInteractionStart);
     controls.addEventListener('end', onInteractionEnd);
     renderer.domElement.addEventListener('keydown', onKeyDown);
-    cameraActionsRef.current = { rotate: () => orbitBy(Math.PI / 4), reset: resetView };
+    const anatomicalView = (back) => {
+      controls.enableDamping = false;
+      controls.update();
+      const distance = camera.position.distanceTo(controls.target);
+      const axisY = new THREE.Vector3(0,1,0).applyQuaternion(scene.getObjectByName('torso').quaternion);
+      const axisZ = new THREE.Vector3(0,0,1).applyQuaternion(scene.getObjectByName('torso').quaternion);
+      // Use the body's front/back for standing and floor exercises alike.
+      const offset = axisZ.multiplyScalar(back ? -1 : 1).addScaledVector(axisY,0.2).normalize();
+      if (offset.y < 0.15) offset.y = 0.15;
+      camera.position.copy(controls.target).add(offset.normalize().multiplyScalar(distance));
+      controls.update();
+      controls.enableDamping = true;
+    };
+    cameraActionsRef.current = { rotate: () => orbitBy(Math.PI / 4), reset: resetView, front: () => anatomicalView(false), back: () => anatomicalView(true) };
     let sized = false;
     const resize = () => {
       const width = mount.clientWidth || 500;
@@ -1303,12 +1082,14 @@ export default function ExerciseDemo({ movement = 'squat', name = 'Squat', equip
       cancelAnimationFrame(frameId);
       resizeObserver.disconnect();
       cameraActionsRef.current = null;
+      humanRef.current = null;
       controls.removeEventListener('change', onCameraChange);
       controls.removeEventListener('start', onInteractionStart);
       controls.removeEventListener('end', onInteractionEnd);
       controls.dispose();
       renderer.domElement.removeEventListener('keydown', onKeyDown);
       renderer.domElement.removeEventListener('webglcontextlost', onContextLost);
+      human.dispose();
       const geometries = new Set();
       const materials = new Set();
       scene.traverse((object) => {
@@ -1321,17 +1102,26 @@ export default function ExerciseDemo({ movement = 'squat', name = 'Squat', equip
       renderer.dispose();
       renderer.domElement.remove();
     };
-  }, [activeMovement, name, equipment, avatar.kind]);
+  }, [activeMovement, name, equipment, avatar.kind, targets, defaultAngle]);
 
   return (
-    <section className="exercise-demo" aria-label={`${name} movement preview`} data-avatar={avatar.kind} data-renderer={fallback ? 'illustration' : 'webgl'}>
+    <section className="exercise-demo" aria-label={`${name} movement preview`} data-avatar={avatar.kind} data-renderer={fallback ? 'illustration' : 'webgl'} data-primary-muscles={targets.primary.join(' ')} data-secondary-muscles={targets.secondary.join(' ')} data-muscles-visible={showMuscles}>
       <div className="exercise-demo__stage">
         <div className="exercise-demo__label"><span /> Movement preview</div>
         <span className="exercise-demo__dimension">{fallback ? 'ILLUSTRATED' : '3D'}</span>
         <div ref={mountRef} className={`exercise-demo__canvas${fallback ? ' exercise-demo__canvas--hidden' : ''}`} />
-        {fallback && <FallbackPreview movement={activeMovement} name={name} equipment={equipment} gender={gender} playingRef={playingRef} speedRef={speedRef} viewRef={viewRef} zoomRef={zoomRef} />}
+        {fallback && <ExerciseIllustration defaultAngle={defaultAngle} targets={targets} showMuscles={showMuscles} getExercisePose={getExercisePose} getEquipmentProps={getEquipmentProps} getWeightAttachments={getWeightAttachments} getAvatarStyle={getAvatarStyle} movement={activeMovement} name={name} equipment={equipment} gender={gender} playingRef={playingRef} speedRef={speedRef} viewRef={viewRef} zoomRef={zoomRef} />}
+        <div className="exercise-demo__views" role="group" aria-label="Anatomical views">
+          <button type="button" onClick={() => { if (!fallback && cameraActionsRef.current) cameraActionsRef.current.front(); else viewRef.current = 0; }} aria-label="Show front muscles">Front</button>
+          <button type="button" onClick={() => { if (!fallback && cameraActionsRef.current) cameraActionsRef.current.back(); else viewRef.current = Math.PI; }} aria-label="Show back muscles">Back</button>
+        </div>
         <span className="exercise-demo__floor-label">{fallback ? 'Drag to rotate the illustration' : 'Drag to rotate · Pinch to zoom'}</span>
       </div>
+      {targets.primary.length > 0 && <div className="exercise-demo__muscles" aria-label="Muscle focus">
+        <div className="exercise-demo__muscle-heading"><strong>{group==='Mobility'?'Movement focus':'Muscles worked'}</strong><button type="button" aria-label="Highlight target muscles" aria-pressed={showMuscles} onClick={() => setShowMuscles(value => !value)}><Activity size={14}/>{showMuscles?'Highlights on':'Highlights off'}</button></div>
+        <div className="exercise-demo__muscle-row"><span className="exercise-demo__muscle-key"><i className="muscle-primary"/>Primary</span><p>{targets.primary.map(id => MUSCLE_REGIONS[id]).join(' · ')}</p></div>
+        {targets.secondary.length > 0 && <div className="exercise-demo__muscle-row"><span className="exercise-demo__muscle-key"><i className="muscle-secondary"/>Supporting</span><p>{targets.secondary.map(id => MUSCLE_REGIONS[id]).join(' · ')}</p></div>}
+      </div>}
       <div className="exercise-demo__controls">
         <button className="exercise-demo__play" type="button" onClick={() => setPlaying((value) => !value)} aria-label={playing ? 'Pause movement demo' : 'Play movement demo'}>
           {playing ? <Pause size={15} fill="currentColor" /> : <Play size={15} fill="currentColor" />}
@@ -1340,7 +1130,7 @@ export default function ExerciseDemo({ movement = 'squat', name = 'Squat', equip
         <button className="exercise-demo__rotate" type="button" onClick={() => { if (!fallback && cameraActionsRef.current) cameraActionsRef.current.rotate(); else viewRef.current += Math.PI / 4; }} aria-label="Rotate movement preview 45 degrees">
           <RotateCw size={15} /> <span>Rotate view</span>
         </button>
-        <button className="exercise-demo__reset" type="button" onClick={() => { if (!fallback && cameraActionsRef.current) cameraActionsRef.current.reset(); else { viewRef.current = 0.57; zoomRef.current = 1; } }} aria-label="Reset movement view"><Scan size={15} /><span>Reset view</span></button>
+        <button className="exercise-demo__reset" type="button" onClick={() => { if (!fallback && cameraActionsRef.current) cameraActionsRef.current.reset(); else { viewRef.current = defaultAngle; zoomRef.current = 1; } }} aria-label="Reset movement view"><Scan size={15} /><span>Reset view</span></button>
         <label className="exercise-demo__speed"><span>Speed</span><select value={speed} onChange={(event) => setSpeed(Number(event.target.value))} aria-label="Movement playback speed"><option value={0.5}>0.5×</option><option value={1}>1×</option><option value={1.5}>1.5×</option></select></label>
       </div>
       <p className="exercise-demo__cue">{activeMovement === 'press' && /bodyweight/i.test(equipment || '') ? 'Reach gently overhead. Relax your shoulders and breathe.' : CUES[activeMovement]}</p>

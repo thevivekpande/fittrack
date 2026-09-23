@@ -20,7 +20,7 @@ Scan the desktop QR card to open [FitTrack on your phone](https://fittrack-three
 ## Features
 
 - Home and Gym training modes with three experience levels each and dedicated recovery sessions. Home plans use bodyweight exercises, a mat, or stable household support.
-- Seventy-three searchable gym exercises and thirty home-friendly exercises with instructions and animated 3D movement previews. Filter biceps, triceps, and Abs & core separately; search “abs” to find all available core movements. View a smooth athletic demo figure, pause playback, change speed, drag to rotate, or pinch to zoom. Reset the camera anytime. An illustrated fallback works without WebGL.
+- Seventy-three searchable gym exercises and thirty home-friendly exercises with instructions and animated 3D movement previews. Filter biceps, triceps, and Abs & core separately; search “abs” to find all available core movements. View a sculpted athletic figure with detailed facial features and fitted clothing. Primary muscles appear in coral and supporting muscles in gold, with exercise-specific labels. Back-focused exercises open from a rear angle. Toggle the highlights, use Front/Back views, pause playback, change speed, drag to rotate, or pinch to zoom. Reset the camera anytime. An illustrated fallback retains muscle highlights and view controls without WebGL.
 - Workout sessions with set completion, a pauseable timer, rest countdown, and automatic save/resume.
 - Weekly activity charts, workout history, body-weight trends, milestones, and CSV export.
 - Blank first-time setup for your name, gender, training location, experience level, primary fitness goal, weekly workout target, chosen rest weekdays, and optional starting weight.

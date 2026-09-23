@@ -7,7 +7,7 @@ const { LEVELS, TRAINING_PLACES, MUSCLE_GROUPS, EXERCISES, getExercisesForPlace,
 // Both renderers use these pure exports. Import their unmodified source before
 // the JSX so their movement geometry can also be checked in Node.
 const preview = await readFile(new URL('../src/components/ExerciseDemo.jsx', import.meta.url), 'utf8');
-const pureSource = preview.slice(preview.indexOf('export const SUPPORTED_MOVEMENTS'), preview.indexOf('function FallbackPreview'));
+const pureSource = preview.slice(preview.indexOf('export const SUPPORTED_MOVEMENTS'), preview.indexOf('export default function ExerciseDemo'));
 const { SUPPORTED_MOVEMENTS, getExercisePose, getEquipmentProps, getWeightAttachments } = await import(`data:text/javascript;base64,${Buffer.from(pureSource).toString('base64')}`);
 
 test('catalog separates home and gym equipment and contains no invented activity', () => {
