@@ -169,6 +169,27 @@
   .plan-calendar .day-card.rest { border-bottom: 3px solid #dccbb7; }
   .plan-date-edit { justify-content: flex-start; gap: 8px; }
 }
+.exercise-row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex-shrink: 0; }
+.exercise-alternative-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 8px 11px; border: 1px solid #dce5d1; border-radius: 8px; color: #506b43; background: #f3f7ed; font-size: 11px; font-weight: 600; }
+.exercise-alternative-button:hover:not(:disabled) { background: #e8f0df; border-color: #aebf9b; }
+.exercise-row-equipment { color: #87927f; font-size: 10px; line-height: 1.5; }
+.alternative-session-note { display: flex; align-items: flex-start; gap: 8px; margin: 0 0 16px; padding: 12px 14px; border-radius: 9px; background: #f2f5ea; color: #687b58; font-size: 12px; line-height: 1.7; }
+.alternative-session-note > svg { margin-top: 3px; }
+.session-exercise-heading .exercise-alternative-button { margin: -4px 0 16px; }
+.session-alternative-hint { margin: -6px 0 16px; max-width: 420px; font-size: 11px; line-height: 1.7; color: #7c866f; }
+.today-card .exercise-row-actions { gap: 6px; }
+@media (max-width: 1100px) and (min-width: 651px) {
+  .today-card .exercise-row-actions { flex-direction: column; gap: 0; }
+}
+@media (max-width: 650px) {
+  .exercise-row, .plan-detail .exercise-row { display: grid; grid-template-columns: 17px 43px minmax(0, 1fr); column-gap: 9px; row-gap: 9px; padding: 15px 0; }
+  .exercise-row .exercise-number { align-self: start; padding-top: 14px; }
+  .exercise-row .exercise-thumbnail { width: 43px; height: 43px; }
+  .exercise-row .exercise-row-actions { grid-column: 2 / -1; justify-content: space-between; gap: 12px; }
+  .exercise-row-actions .demo-link, .plan-detail .exercise-row-actions .demo-link { font-size: 11px; min-height: 42px; }
+  .exercise-alternative-button { min-height: 44px; padding: 9px 12px; font-size: 11px; }
+  .exercise-row-equipment { font-size: 10px; }
+}
 .training-focus-card{display:flex;align-items:center;gap:16px;padding:21px 23px;margin:0 0 25px;border:1px solid #dde5d6;border-radius:12px;background:#fcfdf7}
 .training-focus-card.needs-goal{background:#fff5ec;border-color:#f0dccb}
 .training-focus-icon{width:44px;height:44px;display:grid;place-items:center;border-radius:12px;flex-shrink:0;background:#e9efde;color:#55754d}
