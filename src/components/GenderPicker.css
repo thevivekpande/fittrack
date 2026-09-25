@@ -19,3 +19,21 @@
 .profile-completion>svg{color:#927b57;flex-shrink:0}
 .profile-completion>div{min-width:0;flex:1}.profile-completion strong{font-size:13px}.profile-completion p{font-size:12px;line-height:1.7;color:#8c806e;margin-top:5px}.profile-completion>.button{flex-shrink:0;font-size:12px;min-height:44px}
 @media(max-width:650px){.profile-completion{flex-wrap:wrap;padding:16px}.profile-completion>div{flex-basis:calc(100% - 40px)}.profile-completion>.button{margin-left:34px}}
+
+@media (max-width: 560px) {
+  .gender-picker > p { font-size: 13px; color: #65765e; line-height: 1.7; }
+  .gender-picker > small { font-size: 12px; color: #6f7e65; line-height: 1.7; }
+  .gender-options label { min-width: 0; min-height: 60px; padding: 12px 10px; gap: 8px; font-size: 14px; }
+  .gender-picker > .gender-error { font-size: 13px; }
+  .profile-completion { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; padding: 16px; }
+  .profile-completion > svg { align-self: start; margin-top: 2px; }
+  .profile-completion strong { font-size: 14px; line-height: 1.5; }
+  .profile-completion p { font-size: 13px; color: #786b59; line-height: 1.7; }
+  .profile-completion > .button { grid-column: 1 / -1; width: 100%; margin: 4px 0 0; min-height: 46px; font-size: 14px; white-space: normal; }
+}
+
+@media (max-width: 360px) {
+  .gender-options { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .gender-options label { min-height: 50px; padding: 12px; }
+  .gender-options label > svg:first-of-type { display: block; }
+}

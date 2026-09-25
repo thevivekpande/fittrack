@@ -14,6 +14,7 @@
 .weekly-day-button.is-selected { background: #fff; border-color: #d7e0cb; box-shadow: 0 2px 6px #405b2a04; }
 .weekly-day-name { display: flex; align-items: center; justify-content: space-between; width: 100%; color: #7e8b70; font-size: 13px; font-weight: 650; }
 .weekly-day-name > svg { color: #9aaa88; }
+.weekly-day-short { display: none; }
 .weekly-day-button.has-error .weekly-day-name > svg { color: #b9835b; }
 .weekly-day-button.is-selected .weekly-day-name { color: #4f6f3e; }
 .weekly-day-focus { color: #879477; font-size: 11px; line-height: 1.7; }
@@ -174,3 +175,54 @@
 .weekly-timed-note{font-size:11px;color:#839176;line-height:1.7;margin-top:16px}
 .weekly-mobility-choice { display: inline-flex; align-items: center; gap: 9px; min-height: 44px; margin: 12px 0; font-size: 12px; color: #6c815b; cursor: pointer; }
 .weekly-mobility-choice input { accent-color: #658049; }
+
+@media (max-width: 560px) {
+  .weekly-editor .weekly-day-rail { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; max-width: 100%; padding: 5px; overflow: visible; scroll-snap-type: none; margin-bottom: 20px; }
+  .weekly-editor .weekly-day-button { width: 100%; min-width: 0; min-height: 88px; padding: 9px 6px; gap: 5px; }
+  .weekly-editor .weekly-day-button:last-child { grid-column: auto; }
+  .weekly-editor .weekly-day-full { display: none; }
+  .weekly-editor .weekly-day-short { display: inline; }
+  .weekly-editor .weekly-day-name { font-size: 13px; gap: 3px; }
+  .weekly-editor .weekly-day-focus { display: block; max-width: 100%; font-size: 12px; line-height: 1.5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .weekly-editor .weekly-day-detail { font-size: 11px; line-height: 1.4; }
+  .weekly-editor .weekly-repeat-notice, .weekly-editor .weekly-selection-note { font-size: 13px; line-height: 1.7; }
+  .weekly-editor .weekly-editor-eyebrow { font-size: 10px; }
+  .weekly-editor .weekly-rest-toggle { min-height: 46px; font-size: 13px; }
+  .weekly-editor .weekly-muscle-fieldset > legend { font-size: 13px; }
+  .weekly-editor .weekly-muscle-options { gap: 8px; }
+  .weekly-editor .weekly-muscle-option > span { min-height: 44px; font-size: 13px; }
+  .weekly-editor .weekly-unsupported-group { min-height: 44px; font-size: 12px; line-height: 1.5; }
+  .weekly-editor .weekly-exercises-heading { flex-wrap: wrap; gap: 7px 10px; }
+  .weekly-editor .weekly-exercises-heading h4 { font-size: 14px; }
+  .weekly-editor .weekly-exercises-heading > span { font-size: 12px; }
+  .weekly-editor .weekly-suggestion-note { font-size: 13px; line-height: 1.7; }
+  .weekly-editor .weekly-exercise-search { min-height: 46px; height: auto; padding-right: 0; }
+  .weekly-editor .weekly-exercise-search input { min-height: 44px; font-size: 16px; }
+  .weekly-editor .weekly-exercise-search button { min-width: 44px; min-height: 44px; }
+  .weekly-editor .weekly-exercise-options { max-height: none; overflow: visible; overscroll-behavior: auto; }
+  .weekly-editor .weekly-exercise-option { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: 9px; }
+  .weekly-editor .weekly-exercise-option strong { font-size: 14px; }
+  .weekly-editor .weekly-exercise-option small, .weekly-editor .weekly-exercise-duration { font-size: 12px; }
+  .weekly-editor .weekly-exercise-empty p { font-size: 13px; }
+  .weekly-editor .weekly-exercise-empty button { min-height: 44px; padding: 8px; font-size: 13px; }
+  .weekly-editor .weekly-workout-fields label { font-size: 13px; }
+  .weekly-editor .weekly-workout-fields input, .weekly-editor .weekly-workout-fields select { height: 46px; font-size: 16px; }
+  .weekly-editor .weekly-recovery-content { min-height: 0; padding: 20px 13px; }
+  .weekly-editor .weekly-recovery-content h4 { font-size: 17px; }
+  .weekly-editor .weekly-recovery-content > p { font-size: 13px; line-height: 1.7; margin-bottom: 10px; }
+  .weekly-editor .weekly-mobility-choice { min-height: 44px; font-size: 13px; text-align: left; }
+  .weekly-editor .weekly-mobility-choice input { width: 20px; height: 20px; flex-shrink: 0; }
+  .weekly-editor .weekly-recovery-exercises > div { display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 5px 8px; font-size: 13px; }
+  .weekly-editor .weekly-recovery-exercises small { grid-column: 2; margin-left: 0; font-size: 12px; }
+  .weekly-editor .weekly-recovery-duration { font-size: 12px; line-height: 1.6; }
+  .weekly-editor .weekly-timed-note, .weekly-editor .weekly-day-error, .weekly-editor .weekly-save-error { font-size: 12px; line-height: 1.7; }
+  .weekly-editor .weekly-review-error { min-height: 44px; font-size: 12px; text-align: left; }
+  .weekly-editor .weekly-ready { font-size: 12px; line-height: 1.6; }
+  .weekly-editor .weekly-editor-actions { display: grid; grid-template-columns: minmax(0, .7fr) minmax(0, 1.3fr); align-items: stretch; gap: 9px; }
+  .weekly-editor .weekly-cancel, .weekly-editor .weekly-save { min-width: 0; min-height: 46px; padding: 11px 9px; font-size: 13px; line-height: 1.5; white-space: normal; }
+  .weekly-editor .weekly-day-focus, .weekly-editor .weekly-exercise-option small,
+  .weekly-editor .weekly-exercise-duration, .weekly-editor .weekly-suggestion-note,
+  .weekly-editor .weekly-workout-fields label, .weekly-editor .weekly-timed-note,
+  .weekly-editor .weekly-recovery-content > p, .weekly-editor .weekly-recovery-duration,
+  .weekly-editor .weekly-recovery-exercises small { color: #65745c; }
+}

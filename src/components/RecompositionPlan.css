@@ -52,3 +52,37 @@
   .recomposition-cardio select { font-size: 16px; }
   .recomposition-footer > button { flex: 1; justify-content: center; }
 }
+
+@media (max-width: 560px) {
+  .recomposition-plan .recomposition-intro h3 { font-size: 25px; line-height: 1.35; }
+  .recomposition-plan .recomposition-intro p { font-size: 13px; line-height: 1.7; }
+  .recomposition-plan .recomposition-facts span { font-size: 12px; }
+  .recomposition-plan .recomposition-target-note { margin-top: 13px; padding: 12px; }
+  .recomposition-plan .recomposition-target-note strong { font-size: 13px; }
+  .recomposition-plan .recomposition-target-note p { font-size: 12px; line-height: 1.7; }
+  .recomposition-plan .recomposition-days { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 20px 0; }
+  .recomposition-plan .recomposition-days button { min-width: 44px; min-height: 66px; padding: 10px 5px; gap: 7px; }
+  .recomposition-plan .recomposition-days button > span:first-child { font-size: 13px; }
+  .recomposition-plan .recomposition-day-heading > div { min-width: 0; }
+  .recomposition-plan .recomposition-day-heading h3 { font-size: 22px; line-height: 1.4; overflow-wrap: anywhere; margin-bottom: 8px; }
+  .recomposition-plan .recomposition-day-heading > span { font-size: 12px; margin-bottom: 8px; }
+  .recomposition-plan .recomposition-exercises li { display: grid; grid-template-columns: 18px minmax(0, 1fr) 44px; gap: 9px; padding: 14px 0; }
+  .recomposition-plan .recomposition-exercise-number { min-width: 0; }
+  .recomposition-plan .recomposition-exercises strong { font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+  .recomposition-plan .recomposition-exercises .exercise-target-summary { font-size: 12px; line-height: 1.6; }
+  .recomposition-plan .recomposition-exercises button { width: 44px; min-height: 44px; padding: 8px; }
+  .recomposition-plan .recomposition-cardio { align-items: stretch; flex-direction: column; gap: 8px; font-size: 13px; }
+  .recomposition-plan .recomposition-cardio select { flex: auto; width: 100%; max-width: none; min-height: 46px; font-size: 16px; }
+  .recomposition-plan .recomposition-demo > .text-button { min-height: 44px; max-width: 100%; padding: 9px 0; font-size: 13px; text-align: left; white-space: normal; }
+  .recomposition-plan .recomposition-demo > h4 { font-size: 20px; line-height: 1.5; overflow-wrap: anywhere; }
+  .recomposition-plan .recomposition-cues { padding-left: 20px; font-size: 13px; line-height: 1.8; }
+  .recomposition-plan .recomposition-rest { padding: 28px 16px; }
+  .recomposition-plan .recomposition-rest p { font-size: 13px; }
+  .recomposition-plan .recomposition-apply-note p { font-size: 12px; line-height: 1.7; }
+  .recomposition-plan .recomposition-footer { display: grid; grid-template-columns: minmax(0, .7fr) minmax(0, 1.3fr); align-items: stretch; gap: 9px; }
+  .recomposition-plan .recomposition-footer > button { min-width: 0; min-height: 46px; padding: 11px 9px; font-size: 13px; line-height: 1.5; white-space: normal; }
+  .recomposition-plan .recomposition-intro p, .recomposition-plan .recomposition-target-note p,
+  .recomposition-plan .recomposition-exercises .exercise-target-summary,
+  .recomposition-plan .recomposition-day-heading > span, .recomposition-plan .recomposition-cues,
+  .recomposition-plan .recomposition-apply-note p { color: #65745c; }
+}

@@ -31,3 +31,21 @@
 @media (prefers-reduced-motion: reduce) {
   .rest-day-option > span { transition: none; }
 }
+
+@media (max-width: 560px) {
+  .rest-day-picker { padding: 14px 12px; }
+  .rest-day-picker > legend { font-size: 14px; }
+  .rest-day-picker-heading { flex-wrap: wrap; gap: 9px; }
+  .rest-day-picker-heading p { flex: 1 1 170px; min-width: 0; font-size: 13px; color: #687d5a; line-height: 1.7; }
+  .rest-day-picker-heading > span { font-size: 12px; padding: 5px 8px; }
+  .rest-day-options { gap: 8px; }
+  .rest-day-option > span { min-height: 58px; padding: 10px 3px; gap: 5px; }
+  .rest-day-option strong { font-size: 13px; }
+  .rest-day-mark { flex-shrink: 0; width: 16px; height: 16px; }
+  .rest-day-status, .rest-day-context, .rest-day-error { font-size: 12px; line-height: 1.7; }
+  .rest-day-status, .rest-day-context { color: #657b57; }
+}
+
+@media (max-width: 360px) {
+  .rest-day-option > span { flex-direction: column; min-height: 66px; gap: 7px; }
+}

@@ -31,7 +31,8 @@ Scan the desktop QR card to open [FitTrack on your phone](https://fittrack-three
 - Goal-based weekly suggestions for fat loss, muscle building, physique development, general fitness, and core strength. Suggestions adapt to your training location, experience, and chosen number of workouts and explicitly selected rest weekdays. Choose these in setup or **Settings → Choose training & rest days**. Existing profiles keep their schedule until edited.
 - Change goals from the dashboard or **Settings → Goals & suggested plan**, review the proposed week, and decide whether to keep or replace your custom routine. Every suggested day remains editable.
 - Editable name, gender, and weekly workout target.
-- Responsive workout screens with wrapping exercise tabs and touch-friendly controls, keyboard-accessible dialogs, and reduced-motion support.
+- Phone navigation keeps Plan, Exercises, Progress, and Overview within thumb reach, with Settings and achievements under More. Larger type, touch controls, compact weekday pickers, and readable history cards fit narrow screens.
+- Phone workouts put set logging, rest, and next-exercise controls first. Expand **View form & 3D demo** for the animation and instructions; previews load only when opened on phones. Full-screen mobile dialogs keep their close button visible, use one scrolling body, and respect screen safe areas. Keyboard focus, scroll position, and reduced-motion preferences are preserved.
 - Gender selection controls demo representation and rotates comparable exercise variations; goals, experience, and equipment determine the workout difficulty. All exercises remain available to everyone. Non-binary and private selections use a neutral demo figure.
 - A desktop QR card opens `https://fittrack-three-bice.vercel.app/` on a phone. QR codes are generated locally; progress stays in each browser.
 

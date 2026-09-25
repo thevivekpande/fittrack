@@ -34,6 +34,64 @@ const longDate = new Intl.DateTimeFormat('en-US',{weekday:'short',month:'short',
 const getExercise = id => EXERCISES.find(exercise=>exercise.id===id);
 const formatTime = seconds => `${String(Math.floor(seconds/60)).padStart(2,'0')}:${String(seconds%60).padStart(2,'0')}`;
 
+const MOBILE_QUERY = '(max-width: 760px)';
+function useMobileLayout() {
+  const [mobile, setMobile] = useState(() => window.matchMedia(MOBILE_QUERY).matches);
+  useEffect(() => {
+    const query = window.matchMedia(MOBILE_QUERY);
+    const update = () => setMobile(query.matches);
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
+  return mobile;
+}
+
+let scrollLocks = 0;
+let restorePageScroll;
+function lockPageScroll() {
+  if (scrollLocks++ === 0) {
+    const { scrollX, scrollY } = window;
+    const body = document.body;
+    const previous = Object.fromEntries(['overflow', 'position', 'top', 'left', 'width'].map(key => [key, body.style[key]]));
+    Object.assign(body.style, { overflow: 'hidden', position: 'fixed', top: `-${scrollY}px`, left: `-${scrollX}px`, width: '100%' });
+    restorePageScroll = () => { Object.assign(body.style, previous); window.scrollTo({ left: scrollX, top: scrollY, behavior: 'instant' }); };
+  }
+  return () => { if (--scrollLocks === 0) restorePageScroll?.(); };
+}
+
+function useDialogFocus(container, enabled, onClose) {
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  useEffect(() => {
+    if (!enabled) return;
+    const previous = document.activeElement;
+    const unlock = lockPageScroll();
+    container.current?.focus({ preventScroll: true });
+    const onKey = event => {
+      if (event.key === 'Escape') { event.preventDefault(); closeRef.current(); }
+      if (event.key !== 'Tab' || !container.current) return;
+      const nodes = [...container.current.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex="0"]')].filter(node => node.getClientRects().length && !node.closest('[inert]'));
+      if (!nodes.length) { event.preventDefault(); container.current.focus(); return; }
+      const first = nodes[0], last = nodes.at(-1), active = document.activeElement;
+      if (!container.current.contains(active) || (event.shiftKey && (active === first || active === container.current))) {
+        event.preventDefault(); (event.shiftKey ? last : first).focus();
+      } else if (!event.shiftKey && active === last) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey); unlock();
+      requestAnimationFrame(() => {
+        if (scrollLocks) return;
+        const reachable = previous?.isConnected && !previous.closest('[inert]') && previous.getClientRects().length;
+        const fallback = window.matchMedia(MOBILE_QUERY).matches
+          ? document.querySelector('.mobile-bottom-nav button[aria-expanded], .mobile-menu')
+          : document.querySelector('.sidebar .nav-item[aria-current="page"]');
+        (reachable ? previous : fallback)?.focus({ preventScroll: true });
+      });
+    };
+  }, [container, enabled]);
+}
+
 function App() {
   return <><Application/><MobileAccess/></>;
 }
@@ -67,8 +125,17 @@ function Workspace({data,setData,returning,lastVisit,saving,saveError,saveConfli
   const weeklyScope = `${trainingPlace}:${level}`;
   const [modal,setModal] = useState(null);
   const [sidebarOpen,setSidebarOpen] = useState(false);
+  const mobile = useMobileLayout();
+  const sidebarRef = useRef(null);
+  useDialogFocus(sidebarRef, mobile && sidebarOpen, () => setSidebarOpen(false));
   const [notifications,setNotifications] = useState(false);
   const [toast,setToast] = useState('');
+  const [navigationRequest,setNavigationRequest] = useState(0);
+  useEffect(() => {
+    if (!navigationRequest) return;
+    const frame = requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' }));
+    return () => cancelAnimationFrame(frame);
+  }, [navigationRequest]);
   const [selectedDay,setSelectedDay] = useState(todayIndex);
   const [weekOffset,setWeekOffset] = useState(0);
   const [currentDate,setCurrentDate] = useState(() => dateKey());
@@ -113,7 +180,7 @@ function Workspace({data,setData,returning,lastVisit,saving,saveError,saveConfli
   const stats = {workouts:history.length,minutes:history.reduce((sum,h)=>sum+h.duration,0),calories:history.reduce((sum,h)=>sum+h.calories,0),streak:calculateStreak(history)};
   const notify = message => {setToast(message);};
   useEffect(()=>{if(toast){const timer=setTimeout(()=>setToast(''),4000);return()=>clearTimeout(timer);}},[toast]);
-  const navigate = (id,day=todayIndex()) => {if(id==='plan'){setWeekOffset(0);setSelectedDay(day);}setView(id);setSidebarOpen(false);setNotifications(false);window.scrollTo({top:0,behavior:'smooth'});};
+  const navigate = (id,day=todayIndex()) => {if(id==='plan'){setWeekOffset(0);setSelectedDay(day);}setView(id);setSidebarOpen(false);setNotifications(false);setNavigationRequest(value=>value+1);};
   const startWorkout = (plan=todayPlan) => {
     if (!session && !plan.exerciseIds.length) { notify('This is a complete rest day. Your next workout is on the weekly plan.'); return; }
     if (!session) setSession({id:crypto.randomUUID(),plan:{...plan,level,trainingPlace},exerciseIndex:0,completed:{},elapsed:0});
@@ -186,21 +253,22 @@ function Workspace({data,setData,returning,lastVisit,saving,saveError,saveConfli
 
   return <div className="app-shell">
     {sidebarOpen && <button className="sidebar-backdrop" aria-label="Close navigation" onClick={()=>setSidebarOpen(false)}/>}
-    <aside className={`sidebar ${sidebarOpen?'is-open':''}`}>
+    <aside id="workspace-navigation" className={`sidebar ${sidebarOpen?'is-open':''}`} ref={sidebarRef} tabIndex={-1} role={mobile?'dialog':undefined} aria-modal={mobile&&sidebarOpen?true:undefined} aria-label="Workspace navigation" inert={Boolean(modal)||(mobile&&!sidebarOpen)}>
+      <button className="sidebar-close icon-button" aria-label="Close menu" onClick={()=>setSidebarOpen(false)}><X size={22}/></button>
       <button className="brand" onClick={()=>navigate('dashboard')} aria-label="FitTrack home"><span className="brand-mark"><Zap size={23} fill="currentColor" strokeWidth={1.5}/></span>fittrack<span className="brand-dot">.</span></button>
       <div className="workspace-label">YOUR PERSONAL BEST STARTS HERE</div>
       <div className="nav-label">WORKSPACE</div>
       <nav aria-label="Main navigation">{NAV.map(({id,label,icon:Icon})=><button key={id} className={`nav-item ${view===id?'active':''}`} onClick={()=>navigate(id)} aria-current={view===id?'page':undefined}><Icon size={19}/><span>{label}</span>{id==='plan'?<span className="nav-count">7</span>:view===id?<span className="active-dot"/>:null}</button>)}</nav>
       <div className="sidebar-bottom">
         <div className="milestone-card"><div className="milestone-visual"><span className="orbit orbit-one"/><span className="orbit orbit-two"/><Trophy size={29} strokeWidth={1.5}/><span className="tiny-star star-one">✦</span><span className="tiny-star star-two">✧</span></div><h3>Small steps. Big changes.</h3><p>Show up for yourself.<br/>Your future self will thank you.</p><button onClick={()=>navigate('achievements')}>Explore your milestones <ArrowUpRight size={15}/></button></div>
-        <button className="nav-item" onClick={()=>setModal({type:'settings'})}><Settings size={19}/><span>Settings</span></button>
-        <button className="nav-item" onClick={()=>setModal({type:'help'})}><CircleHelp size={19}/><span>Help & getting started</span></button>
-        <button className="sidebar-profile" onClick={()=>setModal({type:'settings'})}><Avatar name={profile.name}/><span><strong>{profile.name}</strong><small>Your personal workspace</small></span><ChevronDown size={15}/></button>
+        <button className="nav-item" onClick={()=>{setSidebarOpen(false);setModal({type:'settings'});}}><Settings size={19}/><span>Settings</span></button>
+        <button className="nav-item" onClick={()=>{setSidebarOpen(false);setModal({type:'help'});}}><CircleHelp size={19}/><span>Help & getting started</span></button>
+        <button className="sidebar-profile" onClick={()=>{setSidebarOpen(false);setModal({type:'settings'});}}><Avatar name={profile.name}/><span><strong>{profile.name}</strong><small>Your personal workspace</small></span><ChevronDown size={15}/></button>
       </div>
     </aside>
 
-    <div className="main-shell">
-      <header className="topbar"><div className="breadcrumb"><button className="icon-button mobile-menu" aria-label="Open navigation" onClick={()=>setSidebarOpen(true)}><Menu size={21}/></button><span>My workspace</span><ChevronRight size={13}/><strong>{NAV.find(item=>item.id===view)?.label}</strong></div><div className="topbar-actions"><span className="header-date"><CalendarDays size={16}/>{longDate.format(new Date())}</span><span className="header-divider"/><div className="notification-wrap"><button className={`icon-button bell-button ${notifications?'pressed':''}`} aria-label="Notifications" aria-expanded={notifications} onClick={()=>setNotifications(!notifications)}><Bell size={19}/><span className="notification-dot"/></button>{notifications&&<div className="notification-popover"><h3>Your daily nudge <Sparkles size={16}/></h3><p>{session?'Your workout is waiting. Pick up where you left off.':"A little movement goes a long way. Your daily plan is ready when you are."}</p><button className="text-button" onClick={()=>{setNotifications(false);startWorkout();}}>{session?'Resume workout':'View today’s workout'} <ArrowRight size={14}/></button></div>}</div><button className="avatar-button" onClick={()=>setModal({type:'settings'})} aria-label="Edit your profile"><Avatar name={profile.name}/></button></div></header>
+    <div className="main-shell" inert={Boolean(modal)||(mobile&&sidebarOpen)}>
+      <header className="topbar"><div className="breadcrumb"><button className="icon-button mobile-menu" aria-label="Open navigation" aria-controls="workspace-navigation" aria-expanded={sidebarOpen} onClick={()=>setSidebarOpen(true)}><Menu size={21}/></button><span>My workspace</span><ChevronRight size={13}/><strong>{NAV.find(item=>item.id===view)?.label}</strong></div><div className="topbar-actions"><span className="header-date"><CalendarDays size={16}/>{longDate.format(new Date())}</span><span className="header-divider"/><div className="notification-wrap"><button className={`icon-button bell-button ${notifications?'pressed':''}`} aria-label="Notifications" aria-expanded={notifications} onClick={()=>setNotifications(!notifications)}><Bell size={19}/><span className="notification-dot"/></button>{notifications&&<div className="notification-popover"><h3>Your daily nudge <Sparkles size={16}/></h3><p>{session?'Your workout is waiting. Pick up where you left off.':"A little movement goes a long way. Your daily plan is ready when you are."}</p><button className="text-button" onClick={()=>{setNotifications(false);startWorkout();}}>{session?'Resume workout':'View today’s workout'} <ArrowRight size={14}/></button></div>}</div><button className="avatar-button" onClick={()=>setModal({type:'settings'})} aria-label="Edit your profile"><Avatar name={profile.name}/></button></div></header>
       <main id="main-content">
         <div className="training-context-bar"><div className="place-switch" role="group" aria-label="Training location">{TRAINING_PLACES.map(place=>{const Icon=place.id==='home'?Home:Dumbbell;return <button key={place.id} aria-pressed={trainingPlace===place.id} className={trainingPlace===place.id?'selected':''} onClick={()=>{if(trainingPlace!==place.id){setTrainingPlace(place.id);setFilter('All exercises');setQuery('');notify(`${place.label} plans and exercises are ready.`);}}}><Icon size={15}/>{place.label}</button>;})}</div><div className={`local-save-status ${saveError?'save-failed':''}`} role="status"><HardDrive size={13}/>{saveError?'Changes haven’t saved':saving?'Saving changes…':'Saved on this device'}</div></div>
         {saveError&&<div className="save-error-banner" role="alert"><AlertCircle size={19}/><div><strong>We couldn’t save your latest changes.</strong><p>{saveError}</p></div><button className="button button-secondary" onClick={saveConflict?()=>setModal({type:'reload'}):retry}>{saveConflict?'Load latest data':'Retry save'}</button></div>}
@@ -241,6 +309,10 @@ function Workspace({data,setData,returning,lastVisit,saving,saveError,saveConfli
         {view==='achievements'&&<Achievements stats={stats}/>}
       </main>
     </div>
+    <nav className="mobile-bottom-nav" aria-label="Quick navigation" inert={Boolean(modal)||sidebarOpen}>
+      {[{id:'plan',label:'Plan',icon:CalendarDays},{id:'library',label:'Exercises',icon:Dumbbell},{id:'progress',label:'Progress',icon:TrendingUp},{id:'dashboard',label:'Overview',icon:LayoutDashboard}].map(({id,label,icon:Icon})=><button key={id} aria-current={view===id?'page':undefined} onClick={()=>navigate(id)}><Icon size={21}/><span>{label}</span></button>)}
+      <button className={view==='achievements'?'is-current':''} aria-label="More navigation options" aria-controls="workspace-navigation" aria-expanded={sidebarOpen} onClick={()=>setSidebarOpen(true)}><Menu size={21}/><span>More</span></button>
+    </nav>
     {toast&&<div className="toast" role="status"><span><Check size={16}/></span>{toast}<button aria-label="Dismiss notification" onClick={()=>setToast('')}><X size={15}/></button></div>}
     {modal&&<Modal title={modal.type==='demo'?modal.exercise.name:modal.type==='workout'?'Your workout':modal.type==='settings'?'Make this space yours.':modal.type==='help'?'A little help getting started.':modal.type==='alternative'?'Find an alternative.':modal.type==='customize'?'Make this workout yours.':modal.type==='weekly'?'Build your weekly split.':modal.type==='goals'?'What are you training for?':modal.type==='recomposition'?'Your 6-day recomposition planner':modal.type==='reset-weekly'?'Restore your suggested program?':modal.type==='reload'?'Load your latest saved progress?':'You showed up. You got stronger.'} onClose={()=>setModal(null)} wide={modal.type==='workout'} weekly={modal.type==='weekly'} goal={modal.type==='goals'||modal.type==='recomposition'||modal.type==='alternative'}>
       {modal.type==='demo'&&<><div className="demo-modal-meta"><span className="pill">{muscleLabel(modal.exercise.group)}</span><span>{modal.exercise.equipment}</span><span><Clock3 size={14}/>{modal.exercise.duration} min</span></div><Suspense fallback={<div className="demo-loading"><Activity className="loading-pulse" size={28}/>Setting up your movement preview…</div>}><ExerciseDemo exerciseId={modal.exercise.id} group={modal.exercise.group} gender={profile.gender} movement={modal.exercise.movement} name={modal.exercise.name} equipment={modal.exercise.equipment}/></Suspense><h3 className="form-heading">Make every rep count</h3><ol className="instruction-list">{modal.exercise.instructions.map((text,i)=><li key={i}><span>{i+1}</span>{text}</li>)}</ol><ExerciseVideoLinks exercise={modal.exercise} links={modal.videoLinks}/><div className="demo-footer"><span><Sparkles size={15}/> Make room for this in your next session.</span><button className="button button-green" disabled={todayPlan.exerciseIds.includes(modal.exercise.id)} onClick={()=>addToToday(modal.exercise)}>{todayPlan.exerciseIds.includes(modal.exercise.id)?<><Check size={15}/>In today’s plan</>:<><Plus size={15}/>Add to today</>}</button></div></>}
@@ -251,7 +323,7 @@ function Workspace({data,setData,returning,lastVisit,saving,saveError,saveConfli
       {modal.type==='reset-weekly'&&<div className="help-content"><p>This will replace your {activeLevel.label.toLowerCase()} {trainingPlace==='home'?'home':'gym'} split and individual day edits from this week onward with {activeGoal?`a ${activeGoal.label.toLowerCase()} suggestion for your ${profile.goal}-day weekly target`:'the suggested program'}.</p><div className="builder-footer"><button className="button button-secondary" onClick={()=>setModal(null)}>Keep my split</button><button className="button button-green" onClick={resetWeeklyPlan}>Restore program</button></div></div>}
       {modal.type==='alternative'&&<>{session&&<p className="alternative-session-note">Your active workout keeps its saved exercises. To swap during that workout, use its Alternatives button.</p>}<ExerciseAlternatives exercise={modal.exercise} plan={modal.plan} trainingPlace={trainingPlace} gender={profile.gender} date={modal.date} allowWeekly={basePlans[(modal.date.getDay()+6)%7]?.exerciseIds.includes(modal.exercise.id)} onSave={saveAlternative} onCancel={()=>setModal(null)}/></>}
       {modal.type==='customize'&&<WorkoutBuilder plan={modal.plan} exercises={availableExercises} trainingPlace={trainingPlace} onSave={plan=>saveCustomPlan(modal.date,plan)} onCancel={()=>setModal(null)}/> }
-      {modal.type==='workout'&&session&&<WorkoutSession gender={profile.gender} session={session} setSession={setSession} onComplete={finishWorkout} onDiscard={()=>{setSession(null);setModal(null);notify('Workout discarded. Your past progress is still saved.');}}/>}
+      {modal.type==='workout'&&session&&<WorkoutSession mobile={mobile} gender={profile.gender} session={session} setSession={setSession} onComplete={finishWorkout} onDiscard={()=>{setSession(null);setModal(null);notify('Workout discarded. Your past progress is still saved.');}}/>}
       {modal.type==='complete'&&<div className="completion"><div className="completion-emblem"><Trophy size={46}/><span>✦</span><span>✦</span></div><p>One more promise to yourself, kept.<br/>Your {modal.workout.title.toLowerCase()} session is in the books.</p><div className="completion-stats"><div><strong>{modal.workout.exercises}</strong><span>exercises</span></div><div><strong>{modal.workout.duration}<small> min</small></strong><span>time well spent</span></div><div><strong>{modal.workout.calories}</strong><span>est. kcal</span></div></div><button className="button button-green" onClick={()=>{setModal(null);navigate('progress');}}>See your progress <ArrowRight size={17}/></button><small>Saved to your workout history.</small></div>}
       {modal.type==='settings'&&<SettingsForm profile={profile} onGoals={()=>setModal({type:'goals'})} onSave={value=>{setProfile(previous=>({...previous,...value}));setModal(null);notify('Your preferences are saved.');}} onClear={()=>{setData(previous=>({...previous,history:[],weights:[],session:null,customPlans:{},weeklyPlans:{}}));setModal(null);notify('A fresh start. Your own journey begins now.');}}/>}
       {modal.type==='help'&&<div className="help-content"><p>Your own pace. Your next personal best. Here’s how to make FitTrack work for you.</p>{[['01','Find your starting point','Choose a fitness goal, At home or At the gym, and your experience level. We suggest a week based on your goal and available training days. Change your goal anytime from Goals & suggested plan in Settings. In My workout plan, select Edit weekly plan to choose exercises and assign muscles such as Biceps and Shoulders to each weekday. Your split repeats every week. Choose your rest weekdays in Goals & suggested plan. Use Edit this date only for one-time changes.'],['02','Get familiar with your movements','Open an exercise to watch its 3D preview. Pause, slow it down, and rotate the view to explore the movement.'],['03','Show up and check it off','Start a workout, track each set, and take breaks with the rest timer. Your session can be closed and resumed.'],['04','Watch the little things add up','Completed sessions, weekly activity, weight entries, and achievements update as you go. Export your history anytime.']].map(([number,title,body])=><div className="help-step" key={number}><span>{number}</span><div><h3>{title}</h3><p>{body}</p></div></div>)}<div className="help-storage"><Heart size={19}/><p>Your profile, workouts, and weight entries are saved in this browser’s local database. Return on the same browser and site address to continue. Your progress starts with your own entries; clearing browser data removes it.</p></div></div>}
@@ -289,16 +361,18 @@ function WeekStrip({plans,dates,history,selected,onSelect}) {return <div classNa
 
 function Modal({title,onClose,wide,weekly,goal,children}) {
   const container=useRef(null);
-  useEffect(()=>{const previouslyFocused=document.activeElement;const previousOverflow=document.body.style.overflow;document.body.style.overflow='hidden';container.current?.focus();const onKey=event=>{if(event.key==='Escape')onClose();if(event.key==='Tab'){const nodes=[...container.current.querySelectorAll('button:not([disabled]),input,select,a[href],[tabindex="0"]')];if(!nodes.length)return;const first=nodes[0],last=nodes.at(-1);if(event.shiftKey&&(document.activeElement===first||document.activeElement===container.current)){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}}};document.addEventListener('keydown',onKey);return()=>{document.body.style.overflow=previousOverflow;document.removeEventListener('keydown',onKey);previouslyFocused?.focus();};},[]);
+  useDialogFocus(container, true, onClose);
   return <div className="modal-backdrop" onMouseDown={event=>{if(event.target===event.currentTarget)onClose();}}><section className={`modal ${wide?'modal-wide':''} ${weekly?'modal-weekly':''} ${goal?'modal-goals':''}`} role="dialog" aria-modal="true" aria-labelledby="modal-title" ref={container} tabIndex={-1}><div className="modal-header"><div><span className="eyebrow">YOUR FITTRACK SPACE</span><h2 id="modal-title">{title}</h2></div><button className="icon-button" onClick={onClose} aria-label="Close dialog"><X size={21}/></button></div><div className="modal-body">{children}</div></section></div>;
 }
 
-function WorkoutSession({session,setSession,onComplete,onDiscard,gender}) {
+function WorkoutSession({session,setSession,onComplete,onDiscard,gender,mobile}) {
   const [paused,setPaused]=useState(false);
   const [rest,setRest]=useState(0);
   const [confirmDiscard,setConfirmDiscard]=useState(false);
   const [alternativeExercise,setAlternativeExercise]=useState(null);
   const alternativeButtonRef=useRef(null);
+  const exerciseHeadingRef=useRef(null);
+  const [showGuidance,setShowGuidance]=useState(false);
   const closeAlternatives=()=>{setAlternativeExercise(null);requestAnimationFrame(()=>alternativeButtonRef.current?.focus());};
   const {plan,exerciseIndex,completed,elapsed}=session;
   // Older saved sessions predate training locations and used the gym catalog.
@@ -313,7 +387,31 @@ function WorkoutSession({session,setSession,onComplete,onDiscard,gender}) {
     <p className="alternative-session-note"><Pause size={14}/>Your workout timer is paused while you choose an alternative.</p>
     <ExerciseAlternatives key={alternativeExercise} exercise={getExercise(alternativeExercise)} plan={plan} trainingPlace={sessionTrainingPlace} gender={gender} sessionOnly onSave={({replacementId})=>{setSession(previous=>replaceSessionExercise({...previous,plan:{...previous.plan,trainingPlace:previous.plan.trainingPlace || 'gym'}},alternativeExercise,replacementId));setRest(0);closeAlternatives();}} onCancel={closeAlternatives}/>
   </div>;
-  return <div className="workout-session"><div className="session-topline"><div><h3>{plan.title}</h3><span>{plan.trainingPlace==='home'?'At home':'At the gym'} <i>·</i> {LEVELS.find(l=>l.id===plan.level)?.label} <i>·</i> {plan.exerciseIds.length} exercises</span></div><div className="session-clock"><Timer size={17}/><strong>{formatTime(elapsed)}</strong><button className="icon-button" aria-label={paused?'Resume timer':'Pause timer'} onClick={()=>setPaused(!paused)}>{paused?<Play size={16}/>:<Pause size={16}/>}</button></div></div><div className="session-progress"><span style={{width:`${finishedSets/totalSets*100}%`}}/></div><div className="session-progress-label"><span>{finishedSets} of {totalSets} sets complete</span><strong>{Math.round(finishedSets/totalSets*100)}%</strong></div><div className="session-layout"><div><div className="session-exercise-heading"><span className="eyebrow">EXERCISE {exerciseIndex+1} OF {plan.exerciseIds.length}</span><h3>{exercise.name}</h3><button ref={alternativeButtonRef} className="exercise-alternative-button" aria-label={`Alternatives for ${exercise.name}`} disabled={Boolean(completed[exercise.id]?.length)} onClick={()=>setAlternativeExercise(exercise.id)}><ArrowLeftRight size={14}/>Alternatives</button>{Boolean(completed[exercise.id]?.length)&&<p className="session-alternative-hint">To replace this exercise, uncheck its completed sets first. Your other exercises keep their progress.</p>}</div><Suspense fallback={<div className="demo-loading">Loading your 3D preview…</div>}><ExerciseDemo exerciseId={exercise.id} group={exercise.group} gender={gender} movement={exercise.movement} name={exercise.name} equipment={exercise.equipment}/></Suspense><p className="session-form-tip"><Sparkles size={15}/>{exercise.instructions[0]}</p><ExerciseVideoLinks exercise={exercise} links={plan.exerciseVideoLinks?.[exercise.id]}/></div><div className="session-tracking"><div className="set-heading"><h3>Your sets</h3><span>{target.reps} {target.unit} each</span></div><div className="sets-list">{Array.from({length:target.sets},(_,index)=>{const done=(completed[exercise.id]||[]).includes(index);return <button key={index} className={`set-button ${done?'done':''}`} onClick={()=>toggleSet(index)} aria-pressed={done}><span className="set-checkbox">{done&&<Check size={15}/>}</span><strong>Set {index+1}</strong><span>{done?'Completed':`${target.reps} ${target.unit}`}</span></button>;})}</div>{target.restSeconds>0&&<div className="rest-timer"><div><Clock3 size={17}/><span>{rest>0?'Take a breath':'Make room for a rest'}</span></div>{rest>0?<><strong>{formatTime(rest)}</strong><button onClick={()=>setRest(0)}>Skip rest <ChevronRight size={13}/></button></>:<button onClick={()=>setRest(target.restSeconds)}>Start {target.restSeconds}-second rest <Play size={13}/></button>}</div>}<div className="session-navigation"><button className="button button-secondary" disabled={exerciseIndex===0} onClick={()=>{setRest(0);setSession(previous=>({...previous,exerciseIndex:previous.exerciseIndex-1}));}}><ChevronLeft size={15}/>Back</button>{exerciseIndex<plan.exerciseIds.length-1?<button className="button button-green" onClick={()=>{setRest(0);setSession(previous=>({...previous,exerciseIndex:previous.exerciseIndex+1}));}}>Next exercise<ArrowRight size={15}/></button>:<button className="button button-green" disabled={finishedSets<totalSets} onClick={onComplete}>Finish workout<Check size={16}/></button>}</div></div></div><div className="session-exercise-tabs">{plan.exerciseIds.map((id,index)=><button key={id} className={index===exerciseIndex?'active':''} onClick={()=>{setRest(0);setSession(previous=>({...previous,exerciseIndex:index}));}}>{(completed[id]||[]).length===getExerciseTarget(plan,getExercise(id)).sets?<Check size={14}/>:<span>{index+1}</span>}{getExercise(id).name}</button>)}</div><p className="session-save-note">Your sets are saved as you go. Close this window and resume whenever you’re ready.</p><div className="session-discard">{confirmDiscard?<><span>Discard this unfinished session?</span><button className="text-button danger-text" onClick={onDiscard}>Discard session</button><button className="text-button" onClick={()=>setConfirmDiscard(false)}>Keep training</button></>:<button className="text-button" onClick={()=>setConfirmDiscard(true)}>Discard this session</button>}</div></div>;
+  const selectExercise = index => {
+    setRest(0); setShowGuidance(false);
+    setSession(previous=>({...previous,exerciseIndex:index}));
+    requestAnimationFrame(()=>{ exerciseHeadingRef.current?.focus({preventScroll:true}); exerciseHeadingRef.current?.scrollIntoView({block:'nearest'}); });
+  };
+  const tracking = <div className="session-tracking">
+    <div className="set-heading"><h3>Your sets</h3><span>{target.reps} {target.unit} each</span></div>
+    <div className="sets-list">{Array.from({length:target.sets},(_,index)=>{const done=(completed[exercise.id]||[]).includes(index);return <button key={index} className={`set-button ${done?'done':''}`} onClick={()=>toggleSet(index)} aria-pressed={done}><span className="set-checkbox">{done&&<Check size={15}/>}</span><strong>Set {index+1}</strong><span>{done?'Completed':`${target.reps} ${target.unit}`}</span></button>;})}</div>
+    {target.restSeconds>0&&<div className="rest-timer"><div><Clock3 size={17}/><span>{rest>0?'Take a breath':'Make room for a rest'}</span></div>{rest>0?<><strong>{formatTime(rest)}</strong><button onClick={()=>setRest(0)}>Skip rest <ChevronRight size={13}/></button></>:<button onClick={()=>setRest(target.restSeconds)}>Start {target.restSeconds}-second rest <Play size={13}/></button>}</div>}
+    <div className="session-navigation"><button className="button button-secondary" disabled={exerciseIndex===0} onClick={()=>selectExercise(exerciseIndex-1)}><ChevronLeft size={15}/>Back</button>{exerciseIndex<plan.exerciseIds.length-1?<button className="button button-green" onClick={()=>selectExercise(exerciseIndex+1)}>Next exercise<ArrowRight size={15}/></button>:<button className="button button-green" disabled={finishedSets<totalSets} onClick={onComplete}>Finish workout<Check size={16}/></button>}</div>
+  </div>;
+  const guidance = <div className="session-guidance">
+    {mobile&&<button className="session-guidance-toggle" aria-expanded={showGuidance} aria-controls="session-movement-guide" onClick={()=>setShowGuidance(value=>!value)}><Play size={17}/><span>{showGuidance?'Hide form & 3D demo':'View form & 3D demo'}</span><ChevronDown size={18}/></button>}
+    {(!mobile||showGuidance)&&<div id="session-movement-guide"><Suspense fallback={<div className="demo-loading">Loading your 3D preview…</div>}><ExerciseDemo exerciseId={exercise.id} group={exercise.group} gender={gender} movement={exercise.movement} name={exercise.name} equipment={exercise.equipment}/></Suspense><ol className="instruction-list session-instructions">{exercise.instructions.map((text,index)=><li key={index}><span>{index+1}</span>{text}</li>)}</ol><ExerciseVideoLinks exercise={exercise} links={plan.exerciseVideoLinks?.[exercise.id]}/></div>}
+  </div>;
+  return <div className="workout-session">
+    <div className="session-topline"><div><h3>{plan.title}</h3><span>{sessionTrainingPlace==='home'?'At home':'At the gym'} <i>·</i> {LEVELS.find(l=>l.id===plan.level)?.label} <i>·</i> {plan.exerciseIds.length} exercises</span></div><div className="session-clock"><Timer size={17}/><strong>{formatTime(elapsed)}</strong><button className="icon-button" aria-label={paused?'Resume timer':'Pause timer'} onClick={()=>setPaused(!paused)}>{paused?<Play size={16}/>:<Pause size={16}/>}</button></div></div>
+    <div className="session-progress"><span style={{width:`${finishedSets/totalSets*100}%`}}/></div><div className="session-progress-label"><span>{finishedSets} of {totalSets} sets complete</span><strong>{Math.round(finishedSets/totalSets*100)}%</strong></div>
+    <div className="session-exercise-heading"><span className="eyebrow">EXERCISE {exerciseIndex+1} OF {plan.exerciseIds.length}</span><h3 tabIndex={-1} ref={exerciseHeadingRef}>{exercise.name}</h3><div className="session-exercise-meta"><span>{exercise.equipment}</span><button ref={alternativeButtonRef} className="exercise-alternative-button" aria-label={`Alternatives for ${exercise.name}`} disabled={Boolean(completed[exercise.id]?.length)} onClick={()=>setAlternativeExercise(exercise.id)}><ArrowLeftRight size={14}/>Alternatives</button></div>{Boolean(completed[exercise.id]?.length)&&<p className="session-alternative-hint">To replace this exercise, uncheck its completed sets first. Your other exercises keep their progress.</p>}</div>
+    <p className="session-form-tip"><Sparkles size={15}/>{exercise.instructions[0]}</p>
+    <div className="session-layout">{mobile?<>{tracking}{guidance}</>:<>{guidance}{tracking}</>}</div>
+    <div className="session-exercise-tabs" aria-label="Workout exercises">{plan.exerciseIds.map((id,index)=><button key={id} className={index===exerciseIndex?'active':''} aria-current={index===exerciseIndex?'step':undefined} onClick={()=>selectExercise(index)}>{(completed[id]||[]).length===getExerciseTarget(plan,getExercise(id)).sets?<Check size={14}/>:<span>{index+1}</span>}{getExercise(id).name}</button>)}</div>
+    <p className="session-save-note">Your sets are saved as you go. Close this window and resume whenever you’re ready.</p><div className="session-discard">{confirmDiscard?<><span>Discard this unfinished session?</span><button className="text-button danger-text" onClick={onDiscard}>Discard session</button><button className="text-button" onClick={()=>setConfirmDiscard(false)}>Keep training</button></>:<button className="text-button" onClick={()=>setConfirmDiscard(true)}>Discard this session</button>}</div>
+  </div>;
+
 }
 
 function SettingsForm({profile,onSave,onClear,onGoals}) {

@@ -24,10 +24,13 @@ export default function ExerciseAlternatives({ exercise, plan, trainingPlace, ge
   const [selectedId, setSelectedId] = useState('');
   const [scope, setScope] = useState(sessionOnly ? 'session' : 'date');
   const [showIllustration, setShowIllustration] = useState(false);
+  const [showAllChoices, setShowAllChoices] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const savingRef = useRef(false);
   const sourceHeadingRef = useRef(null);
+  const selectedPreviewRef = useRef(null);
+  const scrollPreviewRef = useRef(false);
   const localDate = getLocalDate(date);
   const dayLabel = localDate?.toLocaleDateString('en-US', { weekday: 'long' }) || WEEKDAYS[plan.day] || 'this weekday';
   const dateLabel = localDate?.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) || 'this date';
@@ -36,13 +39,25 @@ export default function ExerciseAlternatives({ exercise, plan, trainingPlace, ge
 
   useEffect(() => {
     setSelectedId(''); setEquipmentFilter('all'); setQuery('');
-    setScope(sessionOnly ? 'session' : 'date'); setShowIllustration(false); setSaveError('');
+    setScope(sessionOnly ? 'session' : 'date'); setShowIllustration(false); setShowAllChoices(false); setSaveError('');
+    scrollPreviewRef.current = false;
     const frame = requestAnimationFrame(() => {
       sourceHeadingRef.current?.focus({ preventScroll: true });
       sourceHeadingRef.current?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     });
     return () => cancelAnimationFrame(frame);
   }, [exercise.id, dateIdentity, sessionOnly]);
+
+  useEffect(() => {
+    if (!selectedId || !scrollPreviewRef.current) return undefined;
+    scrollPreviewRef.current = false;
+    if (!window.matchMedia('(max-width: 760px)').matches) return undefined;
+    const frame = requestAnimationFrame(() => selectedPreviewRef.current?.scrollIntoView({
+      block: 'start', inline: 'nearest',
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+    }));
+    return () => cancelAnimationFrame(frame);
+  }, [selectedId]);
 
   const allChoices = useMemo(() => getExerciseAlternatives({ exercise, trainingPlace, exerciseIds: plan.exerciseIds, equipmentFilter: 'all' }), [exercise, trainingPlace, plan.exerciseIds]);
   const choices = useMemo(() => getExerciseAlternatives({ exercise, trainingPlace, exerciseIds: plan.exerciseIds, equipmentFilter }), [exercise, trainingPlace, plan.exerciseIds, equipmentFilter]);
@@ -57,11 +72,18 @@ export default function ExerciseAlternatives({ exercise, plan, trainingPlace, ge
   const selectedOutsideFilter = selected && !matchingChoices.some(choice => choice.exercise.id === selectedId);
 
   function chooseExercise(candidateId) {
+    scrollPreviewRef.current = Boolean(candidateId);
     setSelectedId(candidateId); setShowIllustration(false); setSaveError('');
   }
 
   function clearFilters() {
-    setEquipmentFilter('all'); setQuery('');
+    setEquipmentFilter('all'); setQuery(''); setShowAllChoices(false);
+  }
+
+  function toggleChoices(event) {
+    const button = event.currentTarget;
+    setShowAllChoices(value => !value);
+    if (showAllChoices) requestAnimationFrame(() => button.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'auto' }));
   }
 
   async function handleSave(event) {
@@ -82,13 +104,13 @@ export default function ExerciseAlternatives({ exercise, plan, trainingPlace, ge
 
     <fieldset className="alternatives-equipment" disabled={saving}>
       <legend>Equipment available</legend>
-      <div>{EQUIPMENT_OPTIONS.map(option => <button key={option.id} type="button" aria-pressed={equipmentFilter === option.id} onClick={() => { setEquipmentFilter(option.id); setSaveError(''); }}>{equipmentFilter === option.id && <Check size={13}/>}<span>{option.label}</span></button>)}</div>
+      <div>{EQUIPMENT_OPTIONS.map(option => <button key={option.id} type="button" aria-pressed={equipmentFilter === option.id} onClick={() => { setEquipmentFilter(option.id); setShowAllChoices(false); setSaveError(''); }}>{equipmentFilter === option.id && <Check size={13}/>}<span>{option.label}</span></button>)}</div>
     </fieldset>
-    <div className="alternatives-search"><Search size={17}/><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search alternatives…" aria-label="Search alternative exercises" disabled={saving}/>{query && <button type="button" onClick={() => setQuery('')} aria-label="Clear alternative search" disabled={saving}><X size={16}/></button>}</div>
+    <div className="alternatives-search"><Search size={17}/><input type="search" value={query} onChange={event => { setQuery(event.target.value); setShowAllChoices(false); }} placeholder="Search alternatives…" aria-label="Search alternative exercises" disabled={saving}/>{query && <button type="button" onClick={() => { setQuery(''); setShowAllChoices(false); }} aria-label="Clear alternative search" disabled={saving}><X size={16}/></button>}</div>
 
     <fieldset className="alternatives-choice-fieldset" disabled={saving}>
       <legend>Choose an alternative <span>{matchingChoices.length} available</span></legend>
-      <div className="alternatives-choices">
+      <div className={`alternatives-choices${showAllChoices ? ' is-expanded' : ''}`} id={`${id}-choices`}>
         {matchingChoices.map(({ exercise: candidate, reason, matchLabel }) => <label className={`alternatives-choice${selectedId === candidate.id ? ' is-selected' : ''}`} key={candidate.id}>
           <input type="radio" name={`${id}-exercise`} value={candidate.id} checked={selectedId === candidate.id} onChange={() => chooseExercise(candidate.id)} aria-describedby={`${id}-${candidate.id}-reason`}/>
           <span className="alternatives-choice-content"><strong>{candidate.name}</strong><span className="alternatives-choice-equipment"><Dumbbell size={12}/>{candidate.equipment}</span><span className="alternatives-choice-reason" id={`${id}-${candidate.id}-reason`}>{reason}</span>{matchLabel && <span className="alternatives-match">{matchLabel}</span>}</span>
@@ -96,9 +118,10 @@ export default function ExerciseAlternatives({ exercise, plan, trainingPlace, ge
         </label>)}
         {!matchingChoices.length && <div className="alternatives-empty"><Dumbbell size={26}/><strong>{hasFilters ? 'No alternatives match these filters.' : 'No available alternatives for this exercise.'}</strong><p>{hasFilters ? 'Try another name or include more equipment.' : 'Exercises already in this workout are excluded from the choices.'}</p>{hasFilters && <button type="button" onClick={clearFilters}>Clear filters <X size={13}/></button>}</div>}
       </div>
+      {matchingChoices.length > 4 && <button className="alternatives-show-more" type="button" onClick={toggleChoices} aria-expanded={showAllChoices} aria-controls={`${id}-choices`}>{showAllChoices ? 'Show fewer alternatives' : `Show all ${matchingChoices.length} alternatives`}<ChevronDown size={16} className={showAllChoices ? 'is-open' : ''}/></button>}
     </fieldset>
 
-    {selected && <section className="alternatives-selected" aria-labelledby={`${id}-selected-heading`}>
+    {selected && <section className="alternatives-selected" aria-labelledby={`${id}-selected-heading`} ref={selectedPreviewRef}>
       <div className="alternatives-selected-heading"><span className="alternatives-selected-check"><Check size={17}/></span><div><span className="alternatives-eyebrow">YOUR REPLACEMENT</span><h4 id={`${id}-selected-heading`}>{selected.exercise.name}</h4><p>{selected.exercise.equipment}</p></div><button type="button" onClick={() => chooseExercise('')} aria-label="Clear selected alternative" disabled={saving}><X size={17}/></button></div>
       {selectedOutsideFilter && <p className="alternatives-filter-note">Your selection is kept while you browse other alternatives.</p>}
       {replacement.plan && <><div className="alternatives-target"><span>Target after replacing</span><TargetSummary plan={replacement.plan} exercise={selected.exercise} showRest/></div><p className="alternatives-target-note">{REPLACEMENT_TARGET_NOTE}</p></>}

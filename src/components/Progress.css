@@ -97,3 +97,70 @@
 @media (max-width: 720px) { .progress-chart-grid { grid-template-columns: 1fr; } .progress-header { align-items: flex-start; } .progress-header h1 { font-size: 28px; } .progress-header p { line-height: 1.6; font-size: 12px; } .progress-outline-button { padding: 9px 11px; font-size: 11px; } .progress-stats { grid-template-columns: 1fr; gap: 9px; } .progress-stat { padding: 16px 20px; } .progress-stat > div { display: flex; flex: 1; justify-content: space-between; align-items: center; gap: 10px; } .progress-stat strong { margin-top: 0; } .progress-weight-svg { max-height: 245px; } .progress-chart-grid > .activity-card .activity-plot { height: 180px; } .progress-table th:first-child, .progress-table td:first-child { padding-left: 18px; } .progress-history-card > .progress-card-heading { padding: 20px 18px; } .progress-table-footer { padding: 14px 18px; } .progress-weight-form { grid-template-columns: 1.3fr 1fr auto; } .progress-save-button { grid-column: auto; } }
 @media (max-width: 440px) { .progress-header { flex-direction: column; gap: 16px; } .progress-header h1 { font-size: 26px; } .activity-card { padding: 19px 17px 15px; } .progress-card-heading h2, .activity-heading h2 { font-size: 14px; } .activity-chart-footer { font-size: 9px; } .progress-weight-number small { font-size: 9px; } .progress-stat strong small { font-size: 9px; } .progress-table-footer { font-size: 9px; } .progress-weight-card { padding: 20px 17px; } .progress-weight-form { grid-template-columns: 1fr 1fr; } .progress-save-button { grid-column: 1 / -1; } }
 @media (prefers-reduced-motion: reduce) { .progress-page { animation: none; } .activity-bar, .activity-bar-value { transition: none; } }
+
+@media (max-width: 560px) {
+  .progress-page, .progress-header > div, .progress-stat > div, .progress-card-heading > div { min-width: 0; }
+  .progress-header { flex-direction: column; align-items: stretch; gap: 16px; margin-bottom: 22px; }
+  .progress-header h1 { font-size: clamp(26px, 7.5vw, 32px); line-height: 1.3; }
+  .progress-header p { font-size: 14px; color: #65715f; line-height: 1.7; }
+  .progress-outline-button { min-height: 46px; padding: 11px 15px; font-size: 14px; }
+  .progress-stat { min-width: 0; padding: 16px; }
+  .progress-stat > div { flex-wrap: wrap; gap: 7px 12px; }
+  .progress-stat > div > span { font-size: 13px; color: #65735d; }
+  .progress-stat strong { font-size: 25px; overflow-wrap: anywhere; }
+  .progress-stat strong small { font-size: 12px; color: #738069; }
+  .progress-chart-grid { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .activity-card, .activity-card--compact, .progress-weight-card { padding: 18px 16px; }
+  .activity-heading, .progress-card-heading { align-items: flex-start; flex-wrap: wrap; gap: 12px; }
+  .activity-heading h2, .progress-card-heading h2 { font-size: 16px; line-height: 1.5; }
+  .activity-heading select, .progress-range-select { min-height: 44px; min-width: 0; max-width: 100%; padding: 9px 10px; font-size: 16px; color: #53664d; }
+  .activity-heading select { margin-left: auto; }
+  .activity-total-row { flex-wrap: wrap; padding-top: 20px; }
+  .activity-total { min-width: 0; flex-wrap: wrap; }
+  .activity-total > span { font-size: 13px; color: #697760; }
+  .activity-change { font-size: 12px; }
+  .activity-plot { padding-left: 26px; }
+  .activity-grid { left: 26px; }
+  .activity-axis { font-size: 11px; color: #72806a; }
+  .activity-bars { gap: 2px; }
+  .activity-day { min-width: 24px; max-width: none; }
+  .activity-day-label { font-size: 11px; }
+  .activity-bar-value { font-size: 11px; padding: 4px 5px; }
+  .activity-day--active .activity-bar-value { opacity: 1; }
+  .activity-chart-footer { font-size: 12px; color: #68775e; }
+  .activity-card .activity-empty { left: 26px; padding: 0 4px; }
+  .activity-card .activity-empty strong { font-size: 13px; text-align: center; }
+  .activity-card .activity-empty span { font-size: 12px; line-height: 1.6; color: #6c7b61; }
+  .progress-card-heading p { font-size: 12px; line-height: 1.6; color: #6d7a63; }
+  .progress-small-button { min-height: 44px; font-size: 13px; padding: 10px 12px; }
+  .progress-weight-number { flex-wrap: wrap; }
+  .progress-weight-number small { font-size: 12px; color: #69795e; line-height: 1.6; }
+  .progress-weight-svg text { font-size: 22px; fill: #64715e; }
+  .progress-weight-svg g > text { text-anchor: end; transform: translateX(30px); }
+  .progress-weight-caption { font-size: 12px; color: #6c7b61; line-height: 1.7; margin-top: 12px; }
+  .progress-weight-empty { min-height: 240px; padding: 22px 0 8px; }
+  .progress-weight-empty p, .progress-history-empty p { font-size: 13px; color: #6c7b61; line-height: 1.7; }
+  .progress-weight-form { grid-template-columns: minmax(0, 1fr); gap: 14px; padding: 14px; }
+  .progress-weight-form label { font-size: 13px; gap: 8px; }
+  .progress-weight-form input { height: 46px; font-size: 16px; padding: 10px; }
+  .progress-save-button { min-height: 46px; grid-column: auto; font-size: 14px; }
+  .progress-weight-form > p { font-size: 12px; line-height: 1.6; color: #6c7b61; }
+  .progress-history-card > .progress-card-heading { padding: 18px 16px; }
+  .progress-table-scroll { overflow: visible; }
+  .progress-table { display: block; white-space: normal; }
+  .progress-table thead { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+  .progress-table tbody { display: grid; gap: 12px; padding: 0 12px 14px; }
+  .progress-table tbody tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 15px; border: 1px solid #e5ebdf; border-radius: 11px; }
+  .progress-table td, .progress-table td:first-child, .progress-table td:last-child { min-width: 0; padding: 0; border: 0; font-size: 13px; color: #53664a; line-height: 1.6; overflow-wrap: anywhere; }
+  .progress-table td:first-child { grid-column: 1 / -1; align-items: flex-start; gap: 10px; }
+  .progress-table td:first-child > span:last-child { min-width: 0; }
+  .progress-table td strong { font-size: 14px; line-height: 1.5; }
+  .progress-table td small { font-size: 12px; color: #707e65; line-height: 1.6; }
+  .progress-table td:nth-child(2) { grid-column: 1 / -1; padding-bottom: 10px; border-bottom: 1px solid #edf0e7; color: #6d7b62; }
+  .progress-table td:nth-child(3)::before, .progress-table td:nth-child(4)::before { display: block; margin-bottom: 3px; font-size: 11px; color: #738068; }
+  .progress-table td:nth-child(3)::before { content: 'Duration'; }
+  .progress-table td:nth-child(4)::before { content: 'Est. calories'; }
+  .progress-table td:last-child { grid-column: 1 / -1; }
+  .progress-completed { font-size: 11px; padding: 5px 8px; }
+  .progress-table-footer { flex-wrap: wrap; gap: 6px 12px; padding: 14px 16px; font-size: 12px; line-height: 1.6; color: #6b795f; }
+}

@@ -49,3 +49,28 @@
 @media (prefers-reduced-motion: reduce) {
   .goal-setup-spinner { animation: none; }
 }
+
+@media (max-width: 560px) {
+  .goal-setup, .goal-setup-intro > p, .goal-setup-weekly > div { min-width: 0; }
+  .goal-setup { gap: 24px; }
+  .goal-setup-intro { align-items: flex-start; gap: 10px; }
+  .goal-setup-intro > p { font-size: 14px; line-height: 1.7; color: #66785c; }
+  .goal-setup-weekly label, .goal-plan-choice legend { font-size: 14px; line-height: 1.6; }
+  .goal-setup-weekly p, .goal-plan-choice > p, .goal-setup-keep-note { font-size: 13px; color: #6b7c5f; line-height: 1.7; }
+  .goal-setup-weekly select { min-width: 0; min-height: 48px; font-size: 16px; }
+  .goal-plan-choice label { gap: 10px; padding: 14px 12px; min-width: 0; }
+  .goal-plan-choice input { width: 18px; height: 18px; }
+  .goal-plan-choice strong { font-size: 14px; }
+  .goal-plan-choice small { font-size: 13px; line-height: 1.7; color: #6d7d60; }
+  .goal-plan-choice label > svg { flex-shrink: 0; }
+  .goal-plan-choice > .goal-replacement-note { color: #806640; }
+  .goal-setup-field-error, .goal-setup-save-error { font-size: 13px; line-height: 1.7; }
+  .goal-setup-footer { gap: 12px; padding-top: 18px; }
+  .goal-setup-footer > span { font-size: 13px; color: #6e7d62; }
+  .goal-setup-footer > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.65fr); gap: 9px; }
+  .goal-setup-cancel, .goal-setup-save { min-width: 0; min-height: 48px; padding: 12px 10px; font-size: 14px; white-space: normal; line-height: 1.5; }
+  .goal-setup-cancel { color: #627650; }
+  .goal-setup-save > svg { flex-shrink: 0; }
+  .goal-setup button:focus-visible, .goal-setup select:focus-visible { outline: 3px solid #efb27f; outline-offset: 3px; }
+  .goal-setup fieldset, .goal-setup select { scroll-margin-block: 20px; }
+}

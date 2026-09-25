@@ -13,8 +13,20 @@
 .exercise-target-fields .has-error { border-color: #bd795d; }
 .exercise-target-error { color: #9c5e42; font-size: 11px; line-height: 1.5; margin: 8px 0 0; }
 @media(max-width: 560px) {
-  .exercise-target-editor { padding: 12px; }
-  .exercise-target-editor summary span { display: block; margin-left: 0; }
-  .exercise-target-inputs { grid-template-columns: repeat(2,minmax(0,1fr)); }
-  .exercise-target-inputs input, .exercise-target-inputs select { min-height: 44px; font-size: 16px; }
+  .exercise-target-editor { padding: 12px 10px; }
+  .exercise-target-editor summary { min-height: 44px; padding: 4px 0; font-size: 14px; line-height: 1.6; }
+  .exercise-target-editor summary:focus-visible { outline: 3px solid #efb27f; outline-offset: 3px; border-radius: 4px; }
+  .exercise-target-editor summary span { display: block; margin-left: 0; font-size: 12px; }
+  .exercise-target-editor > p { font-size: 13px; line-height: 1.7; }
+  .exercise-target-fields { gap: 16px; }
+  .exercise-target-fields fieldset { padding: 11px 9px; }
+  .exercise-target-fields legend { max-width: 100%; font-size: 13px; line-height: 1.6; white-space: normal; overflow-wrap: anywhere; }
+  .exercise-target-inputs { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 13px 10px; align-items: end; }
+  .exercise-target-inputs label { font-size: 12px; line-height: 1.5; }
+  .exercise-target-inputs input, .exercise-target-inputs select { min-height: 46px; font-size: 16px; padding: 9px 7px; }
+  .exercise-target-error { font-size: 12px; line-height: 1.7; }
+  .exercise-target-summary { max-width: 100%; line-height: 1.6; }
+  .exercise-target-summary small { font-size: 12px; }
+  .exercise-target-editor summary span, .exercise-target-editor > p,
+  .exercise-target-inputs label, .exercise-target-summary small { color: #65745c; }
 }

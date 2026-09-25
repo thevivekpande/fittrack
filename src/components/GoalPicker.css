@@ -77,3 +77,26 @@
 @media (prefers-reduced-motion: reduce) {
   .goal-picker-card { transition: none; }
 }
+
+@media (max-width: 560px) {
+  .goal-picker-intro, .goal-picker-error { font-size: 13px; line-height: 1.7; }
+  .goal-picker-intro { color: #68795d; }
+  .goal-picker-options { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .goal-picker-card, .goal-picker-option:last-child:nth-child(odd) .goal-picker-card { min-height: 78px; padding: 14px 12px; align-items: center; }
+  .goal-picker-icon { width: 32px; height: 34px; }
+  .goal-picker-copy > strong { font-size: 14px; }
+  .goal-picker-copy > small { font-size: 13px; line-height: 1.6; color: #6c7b61; }
+  .goal-picker-check { width: 16px; height: 16px; margin-top: 0; }
+  .goal-approach { padding: 15px 13px; }
+  .goal-approach-label, .goal-approach > p, .goal-fat-loss-note > p { font-size: 13px; line-height: 1.75; color: #637851; }
+  .goal-fat-loss-note a { min-height: 44px; margin-top: 3px; font-size: 13px; }
+  .goal-week-heading h3 { font-size: 15px; }
+  .goal-week-heading > span { font-size: 12px; color: #6e7f60; }
+  .goal-week-preview:not(.goal-week-preview--compact) .goal-week-day { grid-template-columns: minmax(0, 1fr) auto; gap: 6px; padding: 12px; }
+  .goal-week-day-label { font-size: 12px; color: #5c7649; }
+  .goal-week-day > strong { font-size: 13px; color: #526e3f; line-height: 1.6; overflow-wrap: break-word; }
+  .goal-week-day > small { font-size: 12px; color: #6c7e5b; }
+  .goal-week-preview--compact .goal-week-days { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .goal-week-preview--compact .goal-week-day { min-height: 70px; padding: 11px 5px; }
+  .goal-week-edit-note { font-size: 13px; color: #697b5b; line-height: 1.7; }
+}

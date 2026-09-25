@@ -282,3 +282,38 @@
   .onboarding-privacy { align-items: flex-start; font-size: 10px; }
   .onboarding-privacy > svg { margin-top: 2px; }
 }
+
+@media (max-width: 560px) {
+  .onboarding-shell { border: 0; }
+  .onboarding-story { padding: calc(24px + env(safe-area-inset-top, 0px)) max(20px, env(safe-area-inset-right, 0px)) 24px max(20px, env(safe-area-inset-left, 0px)); }
+  .onboarding-story-copy { margin-top: 23px; }
+  .onboarding-story h1 { font-size: clamp(33px, 8.5vw, 39px); margin: 12px 0; }
+  .onboarding-story-copy > p { font-size: 13px; line-height: 1.7; color: #d3dfd0; }
+  .onboarding-eyebrow { font-size: 10px; }
+  .onboarding-setup { padding: 26px max(18px, env(safe-area-inset-right, 0px)) calc(26px + env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px)); }
+  .onboarding-form-topline { flex-wrap: wrap; gap: 8px 12px; }
+  .onboarding-setup .onboarding-eyebrow, .onboarding-no-signin { font-size: 10px; color: #65765b; }
+  .onboarding-form-heading h2 { font-size: 28px; }
+  .onboarding-form-heading p { font-size: 14px; color: #68755f; line-height: 1.7; }
+  .onboarding-form { gap: 25px; }
+  .onboarding-fields-row { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+  .onboarding-field > label, .onboarding-choice-field > legend { font-size: 14px; }
+  .onboarding-field > label > span { font-size: 12px; color: #718067; }
+  .onboarding-field input, .onboarding-field select, .onboarding-input-icon > select, .onboarding-input-unit > input { min-width: 0; min-height: 48px; font-size: 16px; }
+  .onboarding-field input::placeholder { color: #77846d; }
+  .onboarding-input-icon > svg, .onboarding-input-unit > span { top: 16px; }
+  .onboarding-input-unit > span { font-size: 13px; color: #68795b; }
+  .onboarding-option { min-width: 0; }
+  .onboarding-place-option .onboarding-option-content { padding: 13px 11px; }
+  .onboarding-option-content strong, .onboarding-level-option .onboarding-option-content strong { font-size: 14px; }
+  .onboarding-option-content small, .onboarding-level-option .onboarding-option-content small { font-size: 13px; color: #6c7c60; line-height: 1.6; }
+  .onboarding-level-option .onboarding-option-content { min-height: 74px; padding: 14px 31px 14px 13px; }
+  .onboarding-field-hint, .onboarding-field-error, .onboarding-save-error { font-size: 12px; line-height: 1.7; }
+  .onboarding-field-hint { color: #6f7d63; }
+  .onboarding-submit { min-height: 50px; padding: 12px; font-size: 15px; }
+  .onboarding-can-change, .onboarding-privacy { font-size: 12px; color: #6b7b5f; line-height: 1.7; }
+  .onboarding-privacy > svg { flex-shrink: 0; }
+  .onboarding-form .goal-picker-card { gap: 10px; padding: 14px 12px; }
+  .onboarding-form .goal-picker-icon { width: 30px; height: 32px; }
+  .onboarding-form input, .onboarding-form select, .onboarding-form fieldset { scroll-margin-block: 20px; }
+}
