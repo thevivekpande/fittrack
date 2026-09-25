@@ -11,10 +11,14 @@
 .session-instructions { margin-block: 18px; }
 .session-exercise-heading h3:focus-visible { outline: 2px solid #91ac7d; outline-offset: 4px; border-radius: 4px; }
 
-@media (max-width: 760px) {
+@media (max-width: 900px) {
   :root { -webkit-text-size-adjust: 100%; --phone-nav-height: 68px; }
   body { background: #f6f8f4; }
   button, a { touch-action: manipulation; }
+  :is(.app-shell, .modal, .onboarding-page) button { min-height: 44px; }
+  :is(.app-shell, .modal) .icon-button { min-width: 44px; min-height: 44px; }
+  :is(.app-shell, .modal, .onboarding-page) input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  :is(.app-shell, .modal, .onboarding-page) select { min-height: 44px; min-width: 0; max-width: 100%; font-size: 16px; }
   .app-shell { min-height: 100dvh; }
   .main-shell { margin-left: 0; }
   .main-shell main { padding: 18px max(16px, env(safe-area-inset-right)) calc(var(--phone-nav-height) + env(safe-area-inset-bottom) + 28px) max(16px, env(safe-area-inset-left)); }
@@ -42,6 +46,7 @@
   .sidebar-profile strong { font-size: 14px; }
   .sidebar-profile small { font-size: 11px; }
   .sidebar-backdrop { z-index: 39; }
+  .sidebar-backdrop { display: block; position: fixed; inset: 0; background: #152f2450; backdrop-filter: blur(3px); }
   .toast { bottom: calc(var(--phone-nav-height) + env(safe-area-inset-bottom) + 12px); font-size: 13px; line-height: 1.6; }
   .toast > button { min-width: 44px; min-height: 44px; }
   .notification-popover { top: calc(62px + env(safe-area-inset-top)); font-size: 13px; max-height: calc(100dvh - 160px); overflow-y: auto; }
@@ -65,6 +70,12 @@
   .week-navigation > .text-button { font-size: 13px; }
   .plan-calendar .week-strip { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
   .plan-calendar .day-card { min-width: 0; min-height: 80px; padding: 10px 2px; }
+  .plan-calendar .day-card:last-child { grid-column: auto; }
+  .plan-calendar .day-card-top { flex-direction: column; justify-content: center; gap: 5px; margin-bottom: 0; }
+  .plan-calendar .day-card-top > span:first-child { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+  .plan-calendar .day-card-top strong { margin: 0; }
+  .plan-calendar .day-card > svg, .plan-calendar .day-title, .plan-calendar .day-duration { display: none; }
+  .plan-calendar .day-card.rest { border-bottom: 3px solid #dccbb7; }
   .plan-calendar .day-card-top > span:first-child { font-size: 10px; }
   .plan-calendar .day-card-top strong { font-size: 18px; }
   .plan-calendar .today-label { font-size: 8px; line-height: 1.4; }
@@ -168,7 +179,7 @@
   .achievement-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
-@media (max-width: 760px) and (max-height: 480px) {
+@media (max-width: 900px) and (max-height: 480px) {
   .topbar { position: static; }
   .modal-header { padding-block: 6px; }
   .modal-header h2 { font-size: 18px; }

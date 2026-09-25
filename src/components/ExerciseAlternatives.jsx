@@ -51,7 +51,7 @@ export default function ExerciseAlternatives({ exercise, plan, trainingPlace, ge
   useEffect(() => {
     if (!selectedId || !scrollPreviewRef.current) return undefined;
     scrollPreviewRef.current = false;
-    if (!window.matchMedia('(max-width: 760px)').matches) return undefined;
+    if (!window.matchMedia('(max-width: 900px)').matches) return undefined;
     const frame = requestAnimationFrame(() => selectedPreviewRef.current?.scrollIntoView({
       block: 'start', inline: 'nearest',
       behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',

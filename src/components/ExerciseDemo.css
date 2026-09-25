@@ -171,7 +171,7 @@
 .exercise-demo button,
 .exercise-demo__speed select { touch-action: manipulation; }
 
-@media (max-width: 760px) {
+@media (max-width: 900px) {
   .exercise-demo { border-radius: 13px; }
   .exercise-demo__stage { height: clamp(260px, 76vw, 320px); }
   .exercise-demo__controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; padding: 10px; }

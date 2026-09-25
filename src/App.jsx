@@ -34,7 +34,7 @@ const longDate = new Intl.DateTimeFormat('en-US',{weekday:'short',month:'short',
 const getExercise = id => EXERCISES.find(exercise=>exercise.id===id);
 const formatTime = seconds => `${String(Math.floor(seconds/60)).padStart(2,'0')}:${String(seconds%60).padStart(2,'0')}`;
 
-const MOBILE_QUERY = '(max-width: 760px)';
+const MOBILE_QUERY = '(max-width: 900px)';
 function useMobileLayout() {
   const [mobile, setMobile] = useState(() => window.matchMedia(MOBILE_QUERY).matches);
   useEffect(() => {

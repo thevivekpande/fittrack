@@ -81,7 +81,7 @@
 .alternatives-spinner { animation: alternatives-spin 900ms linear infinite; }
 @keyframes alternatives-spin { to { transform: rotate(360deg); } }
 
-@media (max-width: 760px) {
+@media (max-width: 900px) {
   .exercise-alternatives { gap: 17px; }
   .alternatives-intro { font-size: 14px; color: #687d5e; line-height: 1.75; }
   .alternatives-original { padding: 14px 12px; gap: 10px; }
