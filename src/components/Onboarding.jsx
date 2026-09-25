@@ -105,7 +105,7 @@ export default function Onboarding({ onComplete, saving = false, error = null })
           <div className="onboarding-story-copy">
             <span className="onboarding-eyebrow">A LITTLE BETTER, EVERY DAY</span>
             <h1 id="onboarding-welcome">Your journey<br />starts with<br /><span>you.</span></h1>
-            <p>A little movement. A little consistency.<br />A stronger version of yourself.</p>
+            <p>A little movement. A little consistency.<br /> A stronger version of yourself.</p>
           </div>
           <div className="onboarding-promises">
             <div><span className="onboarding-promise-icon"><Home size={19} strokeWidth={1.6} /></span><span><strong>Your space.</strong><small>At home or at the gym, make it yours.</small></span></div>
