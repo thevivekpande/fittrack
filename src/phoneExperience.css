@@ -1,6 +1,7 @@
 .phone-save-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .modal-action-slot:empty { display: none; }
 .modal-action-slot { flex-shrink: 0; background: #fff; }
+.location-plan-note { margin-top: 8px; color: #526e60; font-size: 12px; line-height: 1.5; }
 
 @media (max-width: 900px) {
   .modal-backdrop { top: var(--dialog-viewport-top, 0px); bottom: auto; height: var(--dialog-viewport-height, 100dvh); }
@@ -21,6 +22,28 @@
   .phone-page-heading p { color: #687a68; font-size: 12px; line-height: 1.5; margin-bottom: 3px; }
   .phone-page-heading h1 { font-size: clamp(24px, 6.7vw, 29px); line-height: 1.3; letter-spacing: -1.1px; color: var(--phone-ink); }
   .phone-icon-button { width: 44px; height: 44px; flex-shrink: 0; display: grid; place-items: center; border: 1px solid var(--phone-line); border-radius: 13px; background: #fff; color: #426449; }
+  .phone-training-location { display: flex; align-items: center; gap: 12px; margin-bottom: 13px; }
+  .phone-training-location > span { flex-shrink: 0; color: var(--phone-muted); font-size: 12px; font-weight: 600; }
+  .phone-location-switch { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; flex: 1; min-width: 0; padding: 3px; border: 1px solid var(--phone-line); border-radius: 15px; background: #f0f3ed; }
+  .phone-location-switch button { display: flex; align-items: center; justify-content: center; gap: 7px; min-width: 0; min-height: 44px; padding: 8px 6px; border-radius: 11px; background: transparent; color: #607162; font-size: 13px; font-weight: 650; }
+  .phone-location-switch button[aria-pressed='true'] { background: #fff; color: #294b39; box-shadow: 0 1px 4px #294b3910, inset 0 0 0 1px #b8d5c4; }
+  .phone-location-switch button:active { background: #e3eee5; }
+  .phone-location-switch button:focus-visible { outline: 2px solid #64886f; outline-offset: 1px; }
+  .phone-location-switch svg { flex-shrink: 0; }
+  .phone-location-check { visibility: hidden; }
+  .phone-location-switch button[aria-pressed='true'] .phone-location-check { visibility: visible; }
+  .phone-session-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; margin-top: -5px; }
+  .phone-session-heading .phone-workout-kicker { flex-direction: column; align-items: flex-start; gap: 5px; }
+  .phone-session-heading .phone-workout-kicker svg { flex-shrink: 0; }
+  .phone-session-location { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 112px; align-self: start; }
+  .phone-session-location::before { content: ''; position: absolute; inset: 4px 0; background: #e0ece4; border: 1px solid #cadfd2; border-radius: 11px; pointer-events: none; }
+  .phone-session-location button { position: relative; min-width: 0; min-height: 44px; display: grid; place-items: center; padding: 6px 2px; background: transparent; border-radius: 10px; color: #526e60; font-size: 12px; font-weight: 650; letter-spacing: 0; }
+  .phone-session-location button::before { content: ''; position: absolute; inset: 6px 2px; border-radius: 8px; pointer-events: none; }
+  .phone-session-location button[aria-pressed='true'] { color: #294b39; }
+  .phone-session-location button[aria-pressed='true']::before { background: #fff; box-shadow: 0 1px 3px #294b3914, inset 0 0 0 1px #c2d8ca; }
+  .phone-session-location button:active::before { background: #d0e5d8; }
+  .phone-session-location button:focus-visible { outline: 2px solid #64886f; outline-offset: 1px; }
+  .phone-session-location button > span { position: relative; }
   .phone-week { margin-bottom: 16px; }
   .phone-week-heading { display: flex; align-items: center; justify-content: space-between; gap: 7px; }
   .phone-week-heading > div { display: flex; align-items: center; }
@@ -43,6 +66,7 @@
   .phone-workout-kicker .phone-completed { letter-spacing: 0; font-size: 11px; }
   .phone-workout-card h2 { margin: 9px 0 4px; font-size: clamp(23px, 6.3vw, 29px); font-weight: 750; letter-spacing: -.7px; line-height: 1.25; }
   .phone-workout-card > p { font-size: 13px; line-height: 1.6; color: #526e60; }
+  .phone-workout-card > .location-plan-note { font-size: 11px; }
   .phone-workout-facts { display: flex; flex-wrap: wrap; gap: 8px 15px; margin-top: 14px; padding-top: 12px; border-top: 1px solid #d3e8db; }
   .phone-workout-facts span { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: #526e60; }
   .phone-workout-facts span:last-child { display: none; }
@@ -99,7 +123,7 @@
   .phone-library-open { display: flex; align-items: flex-start; gap: 12px; flex: 1; min-width: 0; text-align: left; padding: 3px; }
   .phone-muscle-icon { display: grid; place-items: center; width: 42px; height: 44px; flex-shrink: 0; border-radius: 12px; background: #e9f0df; color: #698651; }
   .phone-library-open > span:last-child { display: grid; gap: 4px; min-width: 0; }
-  .phone-library-open small { font-size: 10px; line-height: 1.4; font-weight: 600; letter-spacing: .6px; text-transform: uppercase; color: #7a8c6d; }
+  .phone-library-open small { font-size: 10px; line-height: 1.4; font-weight: 600; letter-spacing: .6px; text-transform: uppercase; color: #64745e; }
   .phone-library-open strong { font-size: 15px; line-height: 1.4; color: #264935; font-weight: 650; }
   .phone-library-open span > span { font-size: 11px; line-height: 1.5; color: #6e8063; }
   .phone-library-open em { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; line-height: 1.5; color: #416739; font-style: normal; }

@@ -329,7 +329,7 @@
 .onboarding-step-caption { display: flex; justify-content: space-between; gap: 12px; margin: 26px 0 10px; color: #718168; font-size: 11px; }
 .onboarding-step-caption > span:first-child { font-size: 9px; font-weight: 700; letter-spacing: 1.6px; }
 .onboarding-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
-.onboarding-steps > li { display: flex; flex-direction: column; gap: 8px; min-width: 0; font-size: 11px; color: #83907b; line-height: 1.4; }
+.onboarding-steps > li { display: flex; flex-direction: column; gap: 8px; min-width: 0; font-size: 11px; color: #64745e; line-height: 1.4; }
 .onboarding-step-line { display: block; height: 4px; border-radius: 4px; background: #e8eee2; }
 .onboarding-steps > li.is-reached .onboarding-step-line { background: #90a582; }
 .onboarding-steps > li[aria-current='step'] { color: #234f40; font-weight: 700; }

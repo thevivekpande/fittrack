@@ -15,7 +15,7 @@
 .activity-grid { position: absolute; left: 29px; right: 0; top: 0; bottom: 28px; display: flex; flex-direction: column; justify-content: space-between; }
 .activity-grid i { width: 100%; border-top: 1px dashed #e8ece5; }
 .activity-bars { position: relative; display: flex; height: 100%; align-items: stretch; justify-content: space-around; gap: 8px; }
-.activity-day { border: 0; background: transparent; padding: 0; display: flex; flex: 1; align-items: center; flex-direction: column; justify-content: end; min-width: 0; max-width: 50px; cursor: pointer; color: #899184; }
+.activity-day { border: 0; background: transparent; padding: 0; display: flex; flex: 1; align-items: center; flex-direction: column; justify-content: end; min-width: 0; max-width: 50px; cursor: pointer; color: #64745e; }
 .activity-bar-area { display: flex; flex: 1; align-items: flex-end; justify-content: center; width: 100%; }
 .activity-bar { display: block; position: relative; width: 23px; max-width: 75%; background: #c2d0bc; border-radius: 5px 5px 3px 3px; transition: height .5s ease, background .2s ease; }
 .activity-day--active .activity-bar { background: #234f40; }

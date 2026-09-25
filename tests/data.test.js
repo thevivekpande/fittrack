@@ -13,18 +13,33 @@ const { SUPPORTED_MOVEMENTS, getExercisePose, getEquipmentProps, getWeightAttach
 test('catalog separates home and gym equipment and contains no invented activity', () => {
   assert.deepEqual(TRAINING_PLACES.map(({ id }) => id), ['home', 'gym']);
   assert.deepEqual(LEVELS.map(({ label }) => label), ['Beginner', 'Medium', 'Experienced']);
-  assert.equal(EXERCISES.length, 73);
-  assert.equal(getExercisesForPlace('gym').length, 73);
-  assert.equal(getExercisesForPlace('home').length, 30);
+  assert.equal(EXERCISES.length, 85);
+  assert.equal(getExercisesForPlace('gym').length, 85);
+  assert.equal(getExercisesForPlace('home').length, 42);
   assert.ok(getExercisesForPlace('gym').length > getExercisesForPlace('home').length);
   assert.equal(new Set(EXERCISES.map(({ id }) => id)).size, EXERCISES.length);
   for (const exercise of getExercisesForPlace('home')) {
-    assert.ok(['Bodyweight', 'Exercise mat', 'Stable household support'].includes(exercise.equipment), exercise.id);
+    assert.ok(['Bodyweight', 'Exercise mat', 'Stable household support', 'Filled water bottles', 'Light backpack'].includes(exercise.equipment), exercise.id);
   }
   for (const id of ['bench-press', 'lat-pulldown', 'cable-row', 'leg-press', 'lateral-raise', 'triceps-pushdown', 'romanian-deadlift', 'chest-press-machine', 'pec-deck', 'rear-delt-fly', 'cable-triceps-extension', 'treadmill-walk', 'stationary-bike']) {
     assert.deepEqual(EXERCISES.find((exercise) => exercise.id === id)?.places, ['gym'], id);
   }
   assert.equal('createInitialHistory' in data, false);
+});
+
+test('home choices cover a complete muscle split with household loads and continuous cardio', () => {
+  const home = getExercisesForPlace('home');
+  for (const group of ['Biceps', 'Triceps', 'Shoulders', 'Back']) {
+    assert.ok(home.filter(exercise => exercise.group === group).length >= 2, `${group} has home alternatives`);
+  }
+  for (const id of ['backpack-row', 'single-arm-backpack-row', 'bottle-bent-over-row', 'bottle-biceps-curl', 'bottle-hammer-curl', 'bottle-shoulder-press', 'bottle-lateral-raise', 'bottle-rear-delt-fly', 'bottle-overhead-triceps-extension', 'backpack-romanian-deadlift', 'bodyweight-good-morning', 'indoor-walk']) {
+    const exercise = home.find(item => item.id === id);
+    assert.ok(exercise, id);
+    assert.ok(exercise.instructions.length >= 3, id);
+    assert.ok(SUPPORTED_MOVEMENTS.includes(exercise.movement), id);
+    assert.doesNotMatch(exercise.equipment, /dumbbell|barbell|machine|cable|bench/i);
+  }
+  assert.equal(home.find(exercise => exercise.id === 'indoor-walk').movement, 'walking');
 });
 
 test('muscle groups distinguish biceps and triceps and support balanced custom splits', () => {

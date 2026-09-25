@@ -1,3 +1,4 @@
+import TouchSelect from './TouchSelect';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, Dumbbell, Home, Leaf, LoaderCircle, LockKeyhole, Target, TrendingUp } from 'lucide-react';
 import { LEVELS, TRAINING_PLACES } from '../data';
@@ -225,7 +226,7 @@ export default function Onboarding({ onComplete, saving = false, error = null, m
             {(!mobile || step >= 2) && <div className="onboarding-fields-row">
               {(!mobile || step === 2) && <div className="onboarding-field">
                 <label htmlFor="onboarding-goal">Your weekly workout goal</label>
-                <div className="onboarding-input-icon"><Target size={16} /><select id="onboarding-goal" name="goal" value={goal} required disabled={busy} onChange={(event) => updateWeeklyGoal(event.target.value)} aria-invalid={Boolean(errors.goal)} aria-describedby={errors.goal ? 'onboarding-goal-error' : 'onboarding-goal-hint'}><option value="" disabled>Choose your goal</option>{Array.from({ length: 7 }, (_, index) => index + 1).map((days) => <option key={days} value={days}>{days} workout{days === 1 ? '' : 's'} per week</option>)}</select></div>
+                <div className="onboarding-input-icon"><Target size={16} /><TouchSelect id="onboarding-goal" name="goal" value={goal} required disabled={busy} onChange={(event) => updateWeeklyGoal(event.target.value)} aria-invalid={Boolean(errors.goal)} aria-describedby={errors.goal ? 'onboarding-goal-error' : 'onboarding-goal-hint'}><option value="" disabled>Choose your goal</option>{Array.from({ length: 7 }, (_, index) => index + 1).map((days) => <option key={days} value={days}>{days} workout{days === 1 ? '' : 's'} per week</option>)}</TouchSelect></div>
                 {errors.goal ? <p className="onboarding-field-error" id="onboarding-goal-error">{errors.goal}</p> : <p className="onboarding-field-hint" id="onboarding-goal-hint">Make room for a little recovery, too.</p>}
               </div>}
               {(!mobile || step === 3) && <div className="onboarding-field">

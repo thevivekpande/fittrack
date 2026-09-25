@@ -1,3 +1,4 @@
+import TouchSelect from './TouchSelect';
 import { getExerciseTarget, normalizeExerciseTargets } from '../workoutTargets';
 import './ExerciseTargets.css';
 
@@ -26,9 +27,9 @@ export default function ExerciseTargets({ plan, exercises, onChange, disabled = 
       return <fieldset key={exercise.id} disabled={disabled} className={invalid.has(exercise.id) ? 'has-error' : ''}>
         <legend>{exercise.name}</legend>
         <div className="exercise-target-inputs">
-          <label>Sets<select aria-label={`${exercise.name} sets`} value={target.sets} onChange={event => update(exercise, 'sets', Number(event.target.value))}>{Array.from({ length: 20 }, (_, index) => index + 1).map(sets => <option value={sets} key={sets}>{sets}</option>)}</select></label>
+          <label>Sets<TouchSelect aria-label={`${exercise.name} sets`} value={target.sets} onChange={event => update(exercise, 'sets', Number(event.target.value))}>{Array.from({ length: 20 }, (_, index) => index + 1).map(sets => <option value={sets} key={sets}>{sets}</option>)}</TouchSelect></label>
           <label>Target<input aria-label={`${exercise.name} target`} value={target.reps} maxLength={16} placeholder="8–12" onChange={event => update(exercise, 'reps', event.target.value)} aria-invalid={invalid.has(exercise.id)}/></label>
-          <label>Unit<select aria-label={`${exercise.name} unit`} value={target.unit} onChange={event => update(exercise, 'unit', event.target.value)}><option value="reps">Reps</option><option value="sec">Seconds</option><option value="min">Minutes</option></select></label>
+          <label>Unit<TouchSelect aria-label={`${exercise.name} unit`} value={target.unit} onChange={event => update(exercise, 'unit', event.target.value)}><option value="reps">Reps</option><option value="sec">Seconds</option><option value="min">Minutes</option></TouchSelect></label>
           <label>Rest (seconds)<input aria-label={`${exercise.name} rest seconds`} type="number" min="0" max="600" step="1" value={target.restSeconds} onChange={event => update(exercise, 'restSeconds', event.target.value === '' ? '' : Number(event.target.value))}/></label>
         </div>
         {invalid.has(exercise.id) && <p className="exercise-target-error" role="status">Enter a positive target or increasing range, and 0–600 seconds of rest.</p>}

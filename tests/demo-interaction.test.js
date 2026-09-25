@@ -141,6 +141,74 @@ test('treadmill walking alternates steps with a planted foot and a moving belt',
   assert.notDeepEqual(start.lines.filter(({ radius }) => radius === 0.008), later.lines.filter(({ radius }) => radius === 0.008));
 });
 
+test('household demos attach recognizable bottles and bags without gym weights', () => {
+  const household = EXERCISES.filter(exercise => /water bottles|backpack/i.test(exercise.equipment));
+  assert.equal(household.length, 10);
+  for (const exercise of household) {
+    let counts;
+    for (const time of [0, 0.4, 1 / 0.7, 2.4]) {
+      const pose = getExercisePose(exercise.movement, time, exercise.equipment, exercise.name);
+      const props = getEquipmentProps(exercise.movement, pose, exercise.equipment, exercise.name);
+      assert.deepEqual(getWeightAttachments(exercise.movement, pose, exercise.equipment, exercise.name), [], exercise.id);
+      assert.ok(props.lines.length > 0, exercise.id);
+      const currentCounts = [props.lines.length, props.panels.length];
+      if (counts) assert.deepEqual(currentCounts, counts, exercise.id);
+      counts = currentCounts;
+      if (/bottles/i.test(exercise.equipment)) {
+        const bodies = props.lines.filter(line => line.color === '#79a9b6');
+        assert.equal(bodies.length, exercise.movement === 'tricepsextension' ? 1 : 2);
+        const hands = exercise.movement === 'tricepsextension' ? [pose.leftHand.map((value, index) => (value + pose.rightHand[index]) / 2)] : [pose.leftHand, pose.rightHand];
+        bodies.forEach((body, index) => {
+          assert.ok(pointDistance(body.from, hands[index]) < 0.17, exercise.id);
+          assert.ok(pointDistance(body.to, hands[index]) < 0.15, exercise.id);
+        });
+      } else {
+        assert.equal(props.panels.length, 7, 'a complete bag and front pocket');
+        const hands = /single-arm/i.test(exercise.name) ? [pose.rightHand] : [pose.leftHand, pose.rightHand];
+        for (const hand of hands) assert.ok(props.lines.some(line => pointDistance(line.from, hand) < 0.001 || pointDistance(line.to, hand) < 0.001), 'straps connect to the holding hands');
+        assert.ok(props.panels.every(panel => panel.points.every(point => point[1] > 0)), 'bag stays above the floor');
+      }
+    }
+  }
+});
+
+test('backpack grips and folded-arm hinges follow their actual household setup', () => {
+  for (const time of [0, 0.7, 1 / 0.7]) {
+    for (const movement of ['row', 'deadlift']) {
+      const pose = getExercisePose(movement, time, 'Light backpack', movement === 'row' ? 'Bent-over backpack row' : 'Backpack Romanian deadlift');
+      closeTo(pose.rightHand[0] - pose.leftHand[0], 0.3);
+      for (const side of ['left', 'right']) {
+        closeTo(pointDistance(pose[`${side}Shoulder`], pose[`${side}Elbow`]), 0.50);
+        closeTo(pointDistance(pose[`${side}Elbow`], pose[`${side}Hand`]), 0.49);
+      }
+    }
+    const folded = getExercisePose('deadlift', time, 'Bodyweight', 'Bodyweight good morning');
+    const loaded = getExercisePose('deadlift', time, 'Dumbbells');
+    assert.deepEqual(folded.hip, loaded.hip);
+    assert.deepEqual(folded.shoulder, loaded.shoulder);
+    assert.ok(folded.leftHand[0] > 0 && folded.rightHand[0] < 0, 'arms cross the chest');
+    assert.ok(folded.leftHand[1] > loaded.leftHand[1] + 0.5);
+    for (const side of ['left', 'right']) {
+      closeTo(pointDistance(folded[`${side}Shoulder`], folded[`${side}Elbow`]), 0.50);
+      closeTo(pointDistance(folded[`${side}Elbow`], folded[`${side}Hand`]), 0.49);
+    }
+    assert.deepEqual(getEquipmentProps('deadlift', folded, 'Bodyweight', 'Bodyweight good morning'), { lines: [], panels: [] });
+  }
+});
+
+test('indoor walking keeps a foot on the floor and does not show treadmill equipment', () => {
+  for (const time of [0, 0.3, 0.8, 1.4]) {
+    const pose = getExercisePose('walking', time, 'Bodyweight', 'Indoor walking');
+    assert.ok([pose.leftAnkle, pose.rightAnkle].some(ankle => Math.abs(ankle[1] - 0.13) < 0.00001));
+    assert.equal('beltMarker' in pose, false);
+    assert.deepEqual(getEquipmentProps('walking', pose, 'Bodyweight', 'Indoor walking'), { lines: [], panels: [] });
+    for (const side of ['left', 'right']) {
+      closeTo(pointDistance(pose[`${side}Hip`], pose[`${side}Knee`]), 0.62);
+      closeTo(pointDistance(pose[`${side}Knee`], pose[`${side}Ankle`]), 0.60);
+    }
+  }
+});
+
 test('stationary bike feet stay on opposite crank pedals and leg lengths remain constant', () => {
   for (let step = 0; step <= 30; step += 1) {
     const pose = getExercisePose('cycling', step / 18, 'Stationary bike');

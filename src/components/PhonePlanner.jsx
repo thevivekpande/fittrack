@@ -1,11 +1,12 @@
 import { ArrowLeftRight, ArrowRight, CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Clock3, Dumbbell, Leaf, Play, Repeat2, SlidersHorizontal, Target } from 'lucide-react';
 import { EXERCISES, dateKey } from '../data';
 import { TargetSummary } from './ExerciseTargets';
+import TrainingLocationSwitch from './TrainingLocationSwitch';
 
-export default function PhonePlanner({ dates, plans, selectedDay, weekOffset, onSelectDay, onWeekChange, onToday, plan, session, history, goal, onStart, onDemo, onAlternative, onEditWeek, onEditDate, onGoals, onSheet, onReset, custom }) {
+export default function PhonePlanner({ dates, plans, selectedDay, weekOffset, onSelectDay, onWeekChange, onToday, plan, session, history, goal, onStart, onDemo, onAlternative, onEditWeek, onEditDate, onGoals, onSheet, onReset, custom, trainingPlace, onTrainingPlaceChange }) {
   const selectedDate = dates[selectedDay];
   const isToday = dateKey(selectedDate) === dateKey();
-  const complete = history.some(item => item.date === dateKey(selectedDate));
+  const complete = history.some(item => item.date === dateKey(selectedDate) && (item.trainingPlace || 'gym') === trainingPlace);
   const emptyRest = !plan.exerciseIds.length;
   const weekLabel = weekOffset === 0 ? 'This week' : weekOffset === 1 ? 'Next week' : weekOffset === -1 ? 'Last week' : 'Your week';
   return <div className="phone-planner">
@@ -13,7 +14,7 @@ export default function PhonePlanner({ dates, plans, selectedDay, weekOffset, on
     <section className="phone-week" aria-label="Weekly schedule">
       <div className="phone-week-heading"><div><strong>{weekLabel}</strong><span>{dates[0].toLocaleDateString('en-US', {month:'short',day:'numeric'})} – {dates[6].toLocaleDateString('en-US', {month:'short',day:'numeric'})}</span></div><div><button aria-label="Previous week" onClick={()=>onWeekChange(-1)}><ChevronLeft size={19}/></button><button className="phone-today" onClick={onToday}>Today</button><button aria-label="Next week" onClick={()=>onWeekChange(1)}><ChevronRight size={19}/></button></div></div>
       <div className="phone-week-days">{dates.map((date,index)=>{
-        const done = history.some(item=>item.date===dateKey(date));
+        const done = history.some(item=>item.date===dateKey(date)&&(item.trainingPlace||'gym')===trainingPlace);
         const today = dateKey(date) === dateKey();
         return <button key={dateKey(date)} onClick={()=>onSelectDay(index)} aria-pressed={selectedDay===index} aria-current={today?'date':undefined} aria-label={`${date.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'})}: ${plans[index].rest?'Rest':plans[index].title}${done?', completed':''}`}>
           <span>{date.toLocaleDateString('en-US',{weekday:'short'}).slice(0,3)}</span><strong>{date.getDate()}</strong><span className="phone-day-status">{done?<Check size={11}/>:plans[index].rest?<Leaf size={11}/>:<i/>}</span>
@@ -21,8 +22,12 @@ export default function PhonePlanner({ dates, plans, selectedDay, weekOffset, on
       })}</div>
     </section>
     <section className={`phone-workout-card${emptyRest?' is-rest':''}`} aria-label="Selected day workout">
-      <div className="phone-workout-kicker"><span>{emptyRest?<Leaf size={15}/>:<Dumbbell size={15}/>} {emptyRest?'RECOVERY DAY':plan.rest?'GENTLE MOVEMENT':'YOUR SESSION'}</span>{complete&&<span className="phone-completed"><Check size={13}/>Completed</span>}</div>
+      <div className="phone-session-heading">
+        <div className="phone-workout-kicker"><span>{emptyRest?<Leaf size={15}/>:<Dumbbell size={15}/>} {emptyRest?'RECOVERY DAY':plan.rest?'GENTLE MOVEMENT':'YOUR SESSION'}</span>{complete&&<span className="phone-completed"><Check size={13}/>Completed</span>}</div>
+        <TrainingLocationSwitch compact value={trainingPlace} onChange={onTrainingPlaceChange}/>
+      </div>
       <h2>{plan.title}</h2><p>{emptyRest?'A day to recharge. Your next session will be here when you’re ready.':plan.focus}</p>
+      {plan.locationAdapted&&!emptyRest&&<p className="location-plan-note">{plan.locationNote || `${trainingPlace==='home'?'Home':'Gym'} alternatives · Same muscle focus`}</p>}
       {!emptyRest&&<div className="phone-workout-facts"><span><Clock3 size={15}/>{plan.duration} min</span><span><Dumbbell size={15}/>{plan.exerciseIds.length} exercises</span><span><Repeat2 size={15}/>Weekly routine</span></div>}
     </section>
     {!emptyRest&&<section className="phone-exercises" aria-label="Daily exercises"><div className="phone-section-heading"><h2>Your exercises</h2><span>Tap an exercise for its demo</span></div><ol>{plan.exerciseIds.map((id,index)=>{
@@ -38,6 +43,6 @@ export default function PhonePlanner({ dates, plans, selectedDay, weekOffset, on
       {custom&&<button onClick={onReset}><Repeat2 size={18}/><span><strong>Use suggested program</strong><small>Review before replacing your routine</small></span><ChevronRight size={18}/></button>}
     </div></details>
     <p className="phone-plan-note">Your plan stays saved on this device.</p>
-    <div className="phone-workout-dock"><div><strong>{session?'Workout in progress':emptyRest?'Rest day':`${plan.exerciseIds.length} exercises`}</strong><span>{session?session.plan.title:emptyRest?'No workout scheduled':`About ${plan.duration} minutes`}</span></div><button className="phone-primary" onClick={session||!emptyRest?onStart:onEditWeek}>{session?<><Play size={17} fill="currentColor"/>Resume workout</>:emptyRest?<>View routine<ArrowRight size={17}/></>:<><Play size={17} fill="currentColor"/>{plan.rest?'Start recovery':'Start workout'}</>}</button></div>
+    <div className="phone-workout-dock"><div><strong>{session?`${session.plan.trainingPlace==='home'?'Home':'Gym'} workout in progress`:emptyRest?'Rest day':`${plan.exerciseIds.length} exercises`}</strong><span>{session?session.plan.title:emptyRest?'No workout scheduled':`About ${plan.duration} minutes`}</span></div><button className="phone-primary" onClick={session||!emptyRest?onStart:onEditWeek}>{session?<><Play size={17} fill="currentColor"/>Resume workout</>:emptyRest?<>View routine<ArrowRight size={17}/></>:<><Play size={17} fill="currentColor"/>{plan.rest?'Start recovery':'Start workout'}</>}</button></div>
   </div>;
 }

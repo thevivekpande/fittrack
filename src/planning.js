@@ -2,6 +2,7 @@ import { dateKey, getWeekDates } from './data.js';
 import { getSuggestedWeekPlan, normalizeRestDays } from './goals.js';
 import { cloneExerciseTargets, getExerciseTarget, normalizeExerciseTargets } from './workoutTargets.js';
 import { estimateTargetSeconds } from './recompositionPlan.js';
+import { adaptPlanForLocation } from './trainingLocation.js';
 
 export const MAX_PLAN_EXERCISES = 12;
 
@@ -66,13 +67,58 @@ export function updatePlanExercises(plan, chosen, exercises = chosen, previousPl
   });
 }
 
-export function resolveWeekPlans({ level, trainingPlace, fitnessGoal, weeklyGoal, gender, restDays, weeklyPlans = {}, customPlans = {}, dates = getWeekDates() }) {
-  const scope = `${trainingPlace}:${level}`;
-  const template = weeklyPlans[scope] || getSuggestedWeekPlan({ fitnessGoal, level, trainingPlace, weeklyGoal, gender, restDays });
+export function resolveBaseWeekPlans({ level, trainingPlace, fitnessGoal, weeklyGoal, gender, restDays, weeklyPlans = {}, planSources = {} }) {
+  const source = planSources[level] || trainingPlace;
+  const template = weeklyPlans[`${source}:${level}`] || getSuggestedWeekPlan({ fitnessGoal, level, trainingPlace: source, weeklyGoal, gender, restDays });
+  return template.map(plan => adaptPlanForLocation(plan, trainingPlace));
+}
+
+export function resolveWeekPlans(options) {
+  const { level, trainingPlace, planSources = {}, datePlanSources = {}, customPlans = {}, dates = getWeekDates() } = options;
+  const source = planSources[level] || trainingPlace;
+  const template = resolveBaseWeekPlans({ ...options, trainingPlace: source });
   return template.map((plan, index) => {
-    const resolved = { ...plan, ...customPlans[`${scope}:${dateKey(dates[index])}`] };
-    return clonePlanDetails(resolved);
+    const date = dateKey(dates[index]);
+    const dateSource = datePlanSources[`${level}:${date}`] || source;
+    const resolved = { ...plan, ...customPlans[`${dateSource}:${level}:${date}`] };
+    return adaptPlanForLocation(clonePlanDetails(resolved), trainingPlace);
   });
+}
+
+export function saveDatePlan(state, { date, plan, trainingPlace, level }) {
+  const key = date instanceof Date ? dateKey(date) : date;
+  return {
+    ...state,
+    planSources: { ...state.planSources, [level]: state.planSources?.[level] || state.trainingPlace || trainingPlace },
+    datePlanSources: { ...state.datePlanSources, [`${level}:${key}`]: trainingPlace },
+    customPlans: { ...state.customPlans, [`${trainingPlace}:${level}:${key}`]: clonePlanDetails(plan) },
+  };
+}
+
+// Before a recurring edit in another location, carry the displayed routine and
+// its date edits across. Old destination routines must not replace what the
+// user just edited. Merely toggling location never calls this helper.
+export function materializePlanLocation(state, { trainingPlace, level }) {
+  const source = state.planSources?.[level] || trainingPlace;
+  const hasOtherDateSource = Object.entries(state.datePlanSources || {}).some(([key, place]) => key.startsWith(`${level}:`) && place !== trainingPlace);
+  if (source === trainingPlace && !hasOtherDateSource) return state;
+  const options = { ...state, level, trainingPlace, fitnessGoal: state.profile?.fitnessGoal, weeklyGoal: state.profile?.goal, gender: state.profile?.gender, restDays: state.profile?.restDays };
+  const week = resolveBaseWeekPlans(options);
+  const sourcePrefix = `${source}:${level}:`;
+  const targetPrefix = `${trainingPlace}:${level}:`;
+  const dates = new Set(Object.keys(state.customPlans || {}).filter(key => key.startsWith(sourcePrefix)).map(key => key.slice(sourcePrefix.length)));
+  Object.keys(state.datePlanSources || {}).filter(key => key.startsWith(`${level}:`)).forEach(key => dates.add(key.slice(level.length + 1)));
+  const customPlans = Object.fromEntries(Object.entries(state.customPlans || {}).filter(([key]) => !key.startsWith(targetPrefix)));
+  const datePlanSources = { ...state.datePlanSources };
+  for (const date of dates) {
+    const dateSource = datePlanSources[`${level}:${date}`] || source;
+    const override = state.customPlans?.[`${dateSource}:${level}:${date}`];
+    if (!override) continue;
+    const weekday = (new Date(`${date}T12:00:00`).getDay() + 6) % 7;
+    customPlans[`${targetPrefix}${date}`] = adaptPlanForLocation({ ...week[weekday], ...override }, trainingPlace);
+    datePlanSources[`${level}:${date}`] = trainingPlace;
+  }
+  return { ...state, customPlans, datePlanSources, planSources: { ...state.planSources, [level]: trainingPlace }, weeklyPlans: { ...state.weeklyPlans, [`${trainingPlace}:${level}`]: week.map(clonePlanDetails) } };
 }
 
 export function updateTrainingGoal(state, { fitnessGoal, weeklyGoal, gender, restDays, applySuggestion = false, trainingPlace, level }) {
@@ -96,6 +142,10 @@ export function applyWeeklySplit(state, { trainingPlace, level, plans, fromDate 
   const start = dateKey(fromDate);
   return {
     ...state,
+    planSources: { ...state.planSources, [level]: trainingPlace },
+    datePlanSources: Object.fromEntries(Object.entries(state.datePlanSources || {}).filter(([key]) =>
+      !key.startsWith(`${level}:`) || key.slice(level.length + 1) < start,
+    )),
     weeklyPlans: {
       ...state.weeklyPlans,
       [scope]: plans.map(clonePlanDetails),

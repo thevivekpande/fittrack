@@ -58,6 +58,18 @@ test('core movement maps distinguish spinal flexion, hip flexion, and side suppo
   assert.ok(lookup('single-leg-glute-bridge').secondary.includes('obliques'));
 });
 
+test('household exercises preserve specific muscle targets for each movement', () => {
+  for (const [home, gym] of [
+    ['backpack-row', 'dumbbell-row'], ['single-arm-backpack-row', 'single-arm-dumbbell-row'], ['bottle-bent-over-row', 'dumbbell-row'],
+    ['bottle-biceps-curl', 'bicep-curl'], ['bottle-hammer-curl', 'hammer-curl'],
+    ['bottle-shoulder-press', 'shoulder-press'], ['bottle-lateral-raise', 'lateral-raise'],
+    ['bottle-rear-delt-fly', 'rear-delt-fly'], ['bottle-overhead-triceps-extension', 'overhead-triceps-extension'],
+    ['backpack-romanian-deadlift', 'romanian-deadlift'], ['indoor-walk', 'treadmill-walk'],
+  ]) assert.deepEqual(lookup(home), lookup(gym), home);
+  assert.deepEqual(lookup('bodyweight-good-morning').primary, ['hamstrings', 'glutes']);
+  assert.equal(lookup('bodyweight-good-morning').secondary.includes('forearms'), false);
+});
+
 test('mobility and cardio describe their actual moving areas without importing loaded-press targets', () => {
   assert.deepEqual(lookup('standing-reach'), { primary: ['frontDelts', 'sideDelts'], secondary: ['upperBack'] });
   assert.deepEqual(lookup('easy-squat'), { primary: ['quads', 'glutes'], secondary: [] });

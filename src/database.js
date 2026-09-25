@@ -39,6 +39,8 @@ export function createEmptyWorkspace() {
     session: null,
     customPlans: {},
     weeklyPlans: {},
+    planSources: {},
+    datePlanSources: {},
     visits: [],
     lastVisitAt: null,
   };
@@ -173,6 +175,11 @@ export function normalizeWorkspace(value) {
     session: validateSession(value.session),
     customPlans: validateCustomPlans(value.customPlans),
     weeklyPlans: validateWeeklyPlans(value.weeklyPlans),
+    planSources: Object.fromEntries(Object.entries(isObject(value.planSources) ? value.planSources : {}).filter(([level, place]) => levels.has(level) && ['home', 'gym'].includes(place))),
+    datePlanSources: Object.fromEntries(Object.entries(isObject(value.datePlanSources) ? value.datePlanSources : {}).filter(([key, place]) => {
+      const [level, date, extra] = key.split(':');
+      return !extra && levels.has(level) && isCalendarDate(date) && ['home', 'gym'].includes(place);
+    })),
     visits: unique((Array.isArray(value.visits) ? value.visits : []).map(timestamp).filter(Boolean)).slice(-30),
     lastVisitAt: timestamp(value.lastVisitAt),
   };

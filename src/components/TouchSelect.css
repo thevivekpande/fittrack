@@ -1,0 +1,67 @@
+.touch-select { display: inline-flex; position: relative; flex-direction: column; min-width: 0; width: 100%; vertical-align: middle; }
+.touch-select .touch-select__trigger { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-width: 0; min-height: 48px; padding: 11px 13px; border: 1px solid #d8e3d9; border-radius: 12px; background: #fbfdfb; color: #304e3c; font: inherit; font-size: 14px; font-weight: 550; line-height: 1.4; text-align: left; touch-action: manipulation; transition: background 160ms ease, border-color 160ms ease; }
+.touch-select .touch-select__trigger:hover:not(:disabled) { background: #f0f7f0; border-color: #9fbaab; }
+.touch-select .touch-select__trigger[aria-expanded='true'] { background: #edf7ef; border-color: #759c84; }
+.touch-select .touch-select__trigger:focus-visible { outline: 3px solid #e7ae80; outline-offset: 3px; }
+.touch-select__value { min-width: 0; overflow-wrap: anywhere; }
+.touch-select__trigger > svg { color: #6a8772; flex: 0 0 auto; transition: transform 160ms ease; }
+.touch-select__trigger[aria-expanded='true'] > svg { transform: rotate(180deg); }
+.touch-select--placeholder .touch-select__value { color: #78867b; font-weight: 400; }
+.touch-select--invalid .touch-select__trigger { border-color: #ba674e; }
+.touch-select__form-value { position: absolute !important; inset: 0 auto auto 0 !important; width: 1px !important; min-width: 0 !important; height: 1px !important; min-height: 0 !important; max-height: 1px !important; padding: 0 !important; border: 0 !important; margin: 0 !important; opacity: 0; pointer-events: none; clip-path: inset(50%); }
+.touch-select__error { color: #984e38; font-size: 12px; line-height: 1.5; margin-top: 6px; }
+
+.touch-select-dialog { position: fixed; inset: 0; width: min(440px, calc(100vw - 32px)); max-width: none; max-height: min(680px, calc(var(--choice-viewport-height, 100dvh) - 48px)); margin: auto; padding: 0; overflow: hidden; border: 1px solid #e0e9df; border-radius: 23px; background: #fff; color: #2f4a39; box-shadow: 0 22px 90px #17362626; }
+.touch-select-dialog::backdrop { background: #213f3357; backdrop-filter: blur(3px); }
+.touch-select-dialog[open] { display: flex; animation: choice-appear 180ms ease-out; }
+.touch-select-dialog__panel { display: flex; flex-direction: column; width: 100%; min-height: 0; max-height: inherit; }
+.touch-select-dialog__handle { display: none; }
+.touch-select-dialog__heading { display: flex; flex: 0 0 auto; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 24px 22px 19px; border-bottom: 1px solid #edf1e9; }
+.touch-select-dialog__heading > div { min-width: 0; }
+.touch-select-dialog__eyebrow { margin: 0 0 7px; color: #728879; font-size: 10px; line-height: 1.5; letter-spacing: 1.4px; font-weight: 700; }
+.touch-select-dialog__heading h2 { margin: 0; color: #304c3b; font-family: 'Manrope', sans-serif; font-size: 20px; font-weight: 750; letter-spacing: -.5px; line-height: 1.35; overflow-wrap: anywhere; }
+.touch-select-dialog__heading p:last-child { margin: 8px 0 0; color: #768174; font-size: 12px; line-height: 1.6; }
+.touch-select-dialog__close { flex: 0 0 44px; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid #e5ebdf; border-radius: 50%; background: #f7f9f4; color: #64765e; }
+.touch-select-dialog__close:hover { background: #eaf2e7; }
+.touch-select-dialog__search { display: flex; flex: 0 0 auto; align-items: center; gap: 10px; margin: 14px 16px 4px; padding: 0 12px; border: 1px solid #dae5d9; border-radius: 12px; background: #f7faf5; color: #819279; }
+.touch-select-dialog__search:focus-within { outline: 2px solid #759c84; outline-offset: 2px; }
+.touch-select-dialog__search input { width: 100%; min-width: 0; height: 48px; padding: 0; border: 0; border-radius: 0; background: transparent; color: #334d3b; font: inherit; font-size: 16px; outline: none; box-shadow: none; }
+.touch-select-dialog__search input:focus { outline: none; }
+.touch-select-dialog__search input::-webkit-search-cancel-button { display: none; }
+.touch-select-dialog__search button { display: grid; place-items: center; flex: 0 0 44px; width: 44px; min-height: 44px; padding: 0; color: #75866c; }
+.touch-select-dialog__list { overflow-y: auto; overscroll-behavior: contain; min-height: 0; padding: 10px 12px 14px; scroll-padding-block: 10px; outline: none; }
+.touch-select-dialog .touch-select-dialog__option { display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%; min-height: 52px; margin: 3px 0; padding: 12px 13px; border: 1px solid transparent; border-radius: 12px; background: #fff; color: #49604d; font: inherit; font-size: 15px; line-height: 1.45; text-align: left; touch-action: manipulation; }
+.touch-select-dialog__option > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.touch-select-dialog .touch-select-dialog__option[aria-selected='true'] { border-color: #cce0cf; background: #edf7ee; color: #31533d; font-weight: 650; }
+.touch-select-dialog__check { display: grid; place-items: center; flex: 0 0 24px; width: 24px; height: 24px; border: 1px solid #d9e1d5; border-radius: 50%; background: #fff; color: #fff; }
+.touch-select-dialog__option[aria-selected='true'] .touch-select-dialog__check { background: #557c60; border-color: #557c60; }
+.touch-select-dialog__list:focus-visible .touch-select-dialog__option[data-active='true'] { outline: 2px solid #86a17d; outline-offset: -2px; }
+@media (hover: hover) { .touch-select-dialog .touch-select-dialog__option:hover:not(:disabled) { background: #f0f6ed; } }
+.touch-select-dialog__empty { margin: 0; padding: 28px 16px; color: #76836d; font-size: 14px; line-height: 1.7; text-align: center; }
+
+@media (max-width: 900px) {
+  .touch-select .touch-select__trigger { font-size: 16px; }
+  .touch-select-dialog { inset: auto 0 auto; top: calc(var(--choice-viewport-top, 0px) + var(--choice-viewport-height, 100dvh)); transform: translateY(-100%); width: 100%; max-height: min(82dvh, calc(var(--choice-viewport-height, 100dvh) - 16px)); margin: 0; border: 0; border-radius: 24px 24px 0 0; box-shadow: 0 -8px 60px #1d3f2c1c; }
+  .touch-select-dialog[open] { animation: choice-sheet-appear 200ms ease-out; }
+  .touch-select-dialog__handle { display: block; flex: 0 0 auto; width: 34px; height: 4px; margin: 10px auto 0; border-radius: 10px; background: #d9e1d4; }
+  .touch-select-dialog__heading { flex: 0 0 auto; padding: 18px 20px 16px; }
+  .touch-select-dialog__heading h2 { font-size: 21px; }
+  .touch-select-dialog__heading p:last-child { font-size: 12px; }
+  .touch-select-dialog__list { padding: 9px 12px max(16px, env(safe-area-inset-bottom)); }
+  .touch-select-dialog .touch-select-dialog__option { min-height: 54px; font-size: 16px; padding: 13px; }
+}
+
+@media (max-width: 900px) and (max-height: 500px) {
+  .touch-select-dialog { max-height: calc(var(--choice-viewport-height, 100dvh) - 12px); }
+  .touch-select-dialog__heading { padding-block: 10px 12px; align-items: center; }
+  .touch-select-dialog__eyebrow, .touch-select-dialog__heading p:last-child { display: none; }
+  .touch-select-dialog__heading h2 { font-size: 18px; }
+  .touch-select-dialog__search { margin-top: 10px; }
+}
+
+@keyframes choice-appear { from { opacity: 0; } to { opacity: 1; } }
+@keyframes choice-sheet-appear { from { opacity: 0; transform: translateY(calc(-100% + 24px)); } to { opacity: 1; transform: translateY(-100%); } }
+@media (prefers-reduced-motion: reduce) {
+  .touch-select-dialog[open] { animation: none; }
+  .touch-select .touch-select__trigger, .touch-select__trigger > svg { transition: none; }
+}

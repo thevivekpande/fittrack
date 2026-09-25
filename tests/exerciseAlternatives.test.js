@@ -8,6 +8,7 @@ const alternatives = (id, options = {}) => getExerciseAlternatives({ exercise: {
 const ids = values => values.map(value => value.exercise.id);
 const noMachine = exercise => !/machine|cable|treadmill|stationary bike/i.test(exercise.equipment);
 const bodyweight = exercise => ['Bodyweight', 'Exercise mat', 'Stable household support'].includes(exercise.equipment);
+const homeEquipment = exercise => bodyweight(exercise) || ['Filled water bottles', 'Light backpack'].includes(exercise.equipment);
 const dumbbells = exercise => /\bdumbbells?\b/i.test(exercise.equipment);
 
 test('equipment filter choices are stable and immutable', () => {
@@ -32,7 +33,7 @@ test('all catalog sources honor place, equipment, source and plan exclusions wit
           if (equipmentFilter === 'no-machines') assert.ok(noMachine(item.exercise));
           if (equipmentFilter === 'bodyweight') assert.ok(bodyweight(item.exercise));
           if (equipmentFilter === 'dumbbells') assert.ok(dumbbells(item.exercise));
-          if (trainingPlace === 'home') assert.ok(bodyweight(item.exercise));
+          if (trainingPlace === 'home') assert.ok(homeEquipment(item.exercise), `${exercise.id}: home alternative requires gym equipment`);
           if (exercise.group !== 'Cardio') {
             const target = getExerciseMuscles(exercise).primary;
             assert.ok(getExerciseMuscles(item.exercise).primary.some(region => target.includes(region)), `${exercise.id}: no primary focus overlap`);
@@ -59,7 +60,10 @@ test('machine alternatives prioritize useful different equipment while retaining
 
 test('specific muscle focus and movement gates reject misleading leg, arm, and shoulder substitutes', () => {
   assert.deepEqual(ids(alternatives('standing-calf-raise')), ['dumbbell-calf-raise']);
-  assert.deepEqual(ids(alternatives('seated-leg-curl')), ['romanian-deadlift']);
+  assert.deepEqual(ids(alternatives('seated-leg-curl')), ['romanian-deadlift', 'bodyweight-good-morning', 'backpack-romanian-deadlift']);
+  const homeLegCurls = alternatives('seated-leg-curl', { trainingPlace: 'home' });
+  assert.deepEqual(ids(homeLegCurls), ['bodyweight-good-morning', 'backpack-romanian-deadlift']);
+  assert.ok(homeLegCurls.every(item => item.matchLabel === 'Related muscle focus' && /Different movement.*hamstrings.*hip hinge/.test(item.reason)));
   for (const id of ['leg-extension', 'leg-press', 'bodyweight-squat']) {
     assert.equal(ids(alternatives(id)).includes('standing-calf-raise'), false);
     assert.equal(ids(alternatives(id)).includes('seated-leg-curl'), false);
@@ -86,9 +90,10 @@ test('plank variants rank first and abdominal curls are clearly described as dif
 });
 
 test('cardio stays cardio and mobility never becomes a loaded strength substitution', () => {
-  assert.deepEqual(ids(alternatives('treadmill-walk')), ['stationary-bike', 'jumping-jack']);
-  assert.deepEqual(ids(alternatives('treadmill-walk', { equipmentFilter: 'no-machines' })), ['jumping-jack']);
-  assert.deepEqual(ids(alternatives('stationary-bike', { trainingPlace: 'home' })), ['jumping-jack']);
+  assert.deepEqual(ids(alternatives('treadmill-walk')), ['indoor-walk', 'stationary-bike', 'jumping-jack']);
+  assert.deepEqual(ids(alternatives('treadmill-walk', { equipmentFilter: 'no-machines' })), ['indoor-walk', 'jumping-jack']);
+  assert.deepEqual(ids(alternatives('stationary-bike', { trainingPlace: 'home' })), ['indoor-walk', 'jumping-jack']);
+  assert.deepEqual(ids(alternatives('jumping-jack', { trainingPlace: 'home' })), ['indoor-walk']);
   for (const source of EXERCISES.filter(exercise => ['Cardio', 'Mobility'].includes(exercise.group))) {
     assert.ok(alternatives(source.id).every(item => item.exercise.group === source.group));
   }
@@ -115,9 +120,9 @@ test('filtering returns every match in consistent order including mat, support, 
 
 test('empty catalogs after exclusions, unsupported settings, and unknown sources are honest empty results', () => {
   assert.deepEqual(alternatives('chest-press-machine', { exerciseIds: EXERCISES.map(exercise => exercise.id) }), []);
-  assert.deepEqual(alternatives('seated-leg-curl', { trainingPlace: 'home' }), []);
+  assert.deepEqual(alternatives('seated-leg-curl', { trainingPlace: 'home', exerciseIds: ['bodyweight-good-morning', 'backpack-romanian-deadlift'] }), []);
   assert.deepEqual(alternatives('bicep-curl', { equipmentFilter: 'bodyweight' }), []);
-  assert.deepEqual(alternatives('jumping-jack', { trainingPlace: 'home' }), []);
+  assert.deepEqual(alternatives('jumping-jack', { trainingPlace: 'home', exerciseIds: ['indoor-walk'] }), []);
   assert.deepEqual(alternatives('plank', { equipmentFilter: 'dumbbells' }), []);
   for (const options of [undefined, null, [], 4, {}, { exercise: { id: 'unknown', group: 'Legs', movement: 'squat' }, trainingPlace: 'gym' }, { exercise: { name: 'Squat' }, trainingPlace: 'gym' }, { exercise: { id: 'constructor' }, trainingPlace: 'gym' }]) {
     assert.deepEqual(getExerciseAlternatives(options), []);

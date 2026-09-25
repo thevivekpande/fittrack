@@ -1,3 +1,4 @@
+import TouchSelect from './TouchSelect';
 import { useId, useMemo, useState } from 'react';
 import { Activity, ArrowDownToLine, ArrowUpRight, CalendarDays, Check, Clock3, Dumbbell, Plus, Scale, X } from 'lucide-react';
 import { dateKey, getWeekDates } from '../data.js';
@@ -25,10 +26,10 @@ export function ActivityChart({ history = [], compact = false }) {
     <section className={`activity-card${compact ? ' activity-card--compact' : ''}`} aria-labelledby={headingId}>
       <div className="activity-heading">
         <h2 id={headingId}>Activity overview</h2>
-        <select aria-label="Activity chart week" value={week} onChange={(event) => { setWeek(Number(event.target.value)); setSelected(null); }}>
+        <TouchSelect aria-label="Activity chart week" value={week} onChange={(event) => { setWeek(Number(event.target.value)); setSelected(null); }}>
           <option value={0}>This week</option>
           <option value={-1}>Last week</option>
-        </select>
+        </TouchSelect>
       </div>
       <div className="activity-total-row">
         <div className="activity-total"><strong>{total.toLocaleString()}</strong><span>min <span className="activity-total-label">of movement</span></span></div>
@@ -145,7 +146,7 @@ export default function Progress({ history = [], weights = [], onAddWeight, onEx
         </section>
       </div>
       <section className="progress-history-card" aria-labelledby={`${formId}-history`}>
-        <div className="progress-card-heading"><div><h2 id={`${formId}-history`}>Workout history</h2><p>Small wins, all in one place.</p></div><select className="progress-range-select" aria-label="Workout history date range" value={range} onChange={(event) => setRange(event.target.value)}><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="all">All time</option></select></div>
+        <div className="progress-card-heading"><div><h2 id={`${formId}-history`}>Workout history</h2><p>Small wins, all in one place.</p></div><TouchSelect className="progress-range-select" aria-label="Workout history date range" value={range} onChange={(event) => setRange(event.target.value)}><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="all">All time</option></TouchSelect></div>
         {filtered.length ? <div className="progress-table-scroll"><table className="progress-table"><thead><tr><th scope="col">Workout</th><th scope="col">Date</th><th scope="col">Duration</th><th scope="col">Est. calories</th><th scope="col">Status</th></tr></thead><tbody>{filtered.map((session) => <tr key={session.id}><td><span className="progress-workout-icon"><Dumbbell size={17} /></span><span><strong>{session.title}</strong><small>{session.exercises} exercises · {session.level === 'medium' ? 'Medium' : session.level === 'beginner' ? 'Beginner' : 'Experienced'}{session.trainingPlace&&` · ${session.trainingPlace==='home'?'At home':'At the gym'}`}</small></span></td><td>{formatDate(session.date, { month: 'short', day: 'numeric', year: 'numeric' })}</td><td>{number(session.duration)} min</td><td>{number(session.calories).toLocaleString()} kcal</td><td><span className="progress-completed"><Check size={12} />Completed</span></td></tr>)}</tbody></table></div> : <div className="progress-history-empty"><Activity size={28} strokeWidth={1.5} /><h3>A fresh start is a strong start.</h3><p>Complete a workout to add it here, or choose a different date range.</p></div>}
         <div className="progress-table-footer"><span>{filtered.length} {filtered.length === 1 ? 'workout' : 'workouts'} in this period</span><span>Calorie values are estimates.</span></div>
       </section>

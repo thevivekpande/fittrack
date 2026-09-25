@@ -1,3 +1,4 @@
+import TouchSelect from './TouchSelect';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -613,6 +614,28 @@ export function getExercisePose(movement, time, equipment, exerciseName = '') {
       pose[`${side}Elbow`][0] = sign * 0.66;
     }
   }
+  if (['row', 'deadlift'].includes(movement) && /backpack/i.test(equipment || '') && !/single-arm/i.test(exerciseName)) {
+    for (const [side, sign] of [['left', -1], ['right', 1]]) {
+      pose[`${side}Hand`][0] = sign * 0.15;
+      pose[`${side}Elbow`] = bendJoint(pose[`${side}Shoulder`], pose[`${side}Hand`], 0.50, 0.49, [sign, -0.1, -0.8]);
+    }
+  }
+  if (movement === 'deadlift' && /good morning/i.test(exerciseName)) {
+    const torso = pose.shoulder.map((value, index) => value - pose.hip[index]);
+    const length = Math.hypot(...torso);
+    const upY = torso[1] / length;
+    const upZ = torso[2] / length;
+    for (const [side, sign] of [['left', -1], ['right', 1]]) {
+      // Folded arms follow the torso through the hinge rather than hanging
+      // below the shoulders like the loaded deadlift variant.
+      pose[`${side}Hand`] = [-sign * 0.23, pose.shoulder[1] - upY * 0.16 - upZ * 0.21, pose.shoulder[2] - upZ * 0.16 + upY * 0.21];
+      pose[`${side}Elbow`] = bendJoint(pose[`${side}Shoulder`], pose[`${side}Hand`], 0.50, 0.49, [sign, -upY, -upZ + 0.15]);
+    }
+  }
+  if (movement === 'walking' && /bodyweight/i.test(equipment || '')) {
+    for (const joint of Object.values(pose)) joint[1] -= 0.16;
+    delete pose.beltMarker;
+  }
   return pose;
 }
 
@@ -629,6 +652,34 @@ export function getEquipmentProps(movement, pose, equipment = '', exerciseName =
   };
   const cable = (from, to) => line(from, to, 0.014, '#344c3f');
   const centerHand = pose.leftHand.map((value, index) => (value + pose.rightHand[index]) / 2);
+  if (/water bottles/i.test(equipment)) {
+    const heldTogether = movement === 'tricepsextension';
+    const axis = heldTogether ? [0, 1, 0] : /hammer/i.test(exerciseName) || movement === 'reardeltfly' ? [0, 0, 1] : [1, 0, 0];
+    for (const hand of heldTogether ? [centerHand] : [pose.leftHand, pose.rightHand]) {
+      const point = distance => hand.map((value, index) => value + axis[index] * distance);
+      line(point(-0.16), point(0.14), 0.085, '#79a9b6');
+      line(point(0.14), point(0.20), 0.042, '#9dbfca');
+      line(point(0.20), point(0.24), 0.052, '#355c6d');
+    }
+  }
+  if (/backpack/i.test(equipment)) {
+    const singleArm = /single-arm/i.test(exerciseName);
+    const grip = singleArm ? pose.rightHand : centerHand;
+    const point = (x, y, z) => [grip[0] + x, grip[1] + y, grip[2] + z];
+    const front = [-0.20, 0.20].flatMap(x => [point(x, -0.11, 0.20), point(x, -0.43, 0.20)]);
+    const back = [-0.20, 0.20].flatMap(x => [point(x, -0.11, -0.04), point(x, -0.43, -0.04)]);
+    panel([front[0], front[2], front[3], front[1]], '#6f8a71');
+    panel([back[0], back[1], back[3], back[2]], '#5c745e');
+    panel([front[0], front[1], back[1], back[0]], '#627e65');
+    panel([front[2], back[2], back[3], front[3]], '#627e65');
+    panel([front[0], back[0], back[2], front[2]], '#8ea58c');
+    panel([front[1], front[3], back[3], back[1]], '#5c745e');
+    // Pocket and short straps make the household bag distinct from a weight.
+    panel([point(-0.14, -0.23, 0.205), point(0.14, -0.23, 0.205), point(0.14, -0.38, 0.205), point(-0.14, -0.38, 0.205)], '#93aa8d');
+    line(point(-0.14, -0.23, 0.213), point(0.14, -0.23, 0.213), 0.008, '#d6dfc9');
+    line(point(-0.15, -0.11, 0.05), singleArm ? grip : pose.leftHand, 0.027, '#435c49');
+    line(singleArm ? grip : pose.rightHand, point(0.15, -0.11, 0.05), 0.027, '#435c49');
+  }
   if (['crunch', 'reversecrunch', 'deadbug', 'bicyclecrunch', 'heeltap', 'mountainclimber', 'birddog', 'sideplank', 'legraise', 'superman', 'bridge', 'plank'].includes(movement) && !/bench|household support/i.test(equipment)) {
     panel([[-0.78, 0.025, -1.75], [0.78, 0.025, -1.75], [0.78, 0.025, 1.75], [-0.78, 0.025, 1.75]], '#ccd8bc');
   }
@@ -680,7 +731,7 @@ export function getEquipmentProps(movement, pose, equipment = '', exerciseName =
     line(junction, pose.leftHand, 0.025, '#344c3f');
     line(junction, pose.rightHand, 0.025, '#344c3f');
   }
-  if (movement === 'walking') {
+  if (movement === 'walking' && !/bodyweight/i.test(equipment)) {
     panel([[-0.62, 0.16, -1.34], [0.62, 0.16, -1.34], [0.62, 0.16, 1.34], [-0.62, 0.16, 1.34]], '#465c4c');
     for (const x of [-0.69, 0.69]) {
       line([x, 0.11, -1.38], [x, 0.11, 1.38], 0.085, '#85937d');
@@ -957,7 +1008,7 @@ export default function ExerciseDemo({ movement = 'squat', name = 'Squat', equip
     };
     const floorMovement = ['pushup', 'plank', 'bridge', 'benchpress', 'chestfly', 'crunch', 'reversecrunch', 'deadbug', 'bicyclecrunch', 'heeltap', 'mountainclimber', 'birddog', 'sideplank', 'legraise', 'superman'].includes(activeMovement) && !/wall/i.test(name);
     const incline = ['pushup', 'plank'].includes(activeMovement) && /bench|household support/i.test(equipment || '') && !/wall/i.test(name);
-    const tallMachine = ['latpulldown', 'tricepspushdown', 'cablecrunch', 'facepull', 'cabletricepsextension', 'walking'].includes(activeMovement);
+    const tallMachine = ['latpulldown', 'tricepspushdown', 'cablecrunch', 'facepull', 'cabletricepsextension'].includes(activeMovement) || (activeMovement === 'walking' && /treadmill/i.test(equipment || ''));
     const targetHeight = incline || ['benchpress', 'chestfly'].includes(activeMovement) ? 0.98 : floorMovement ? 0.7 : 1.46;
     const cameraOffset = new THREE.Vector3();
     const spherical = new THREE.Spherical();
@@ -1131,9 +1182,9 @@ export default function ExerciseDemo({ movement = 'squat', name = 'Squat', equip
           <RotateCw size={15} /> <span>Rotate view</span>
         </button>
         <button className="exercise-demo__reset" type="button" onClick={() => { if (!fallback && cameraActionsRef.current) cameraActionsRef.current.reset(); else { viewRef.current = defaultAngle; zoomRef.current = 1; } }} aria-label="Reset movement view"><Scan size={15} /><span>Reset view</span></button>
-        <label className="exercise-demo__speed"><span>Speed</span><select value={speed} onChange={(event) => setSpeed(Number(event.target.value))} aria-label="Movement playback speed"><option value={0.5}>0.5×</option><option value={1}>1×</option><option value={1.5}>1.5×</option></select></label>
+        <label className="exercise-demo__speed"><span>Speed</span><TouchSelect value={speed} onChange={(event) => setSpeed(Number(event.target.value))} aria-label="Movement playback speed"><option value={0.5}>0.5×</option><option value={1}>1×</option><option value={1.5}>1.5×</option></TouchSelect></label>
       </div>
-      <p className="exercise-demo__cue">{activeMovement === 'press' && /bodyweight/i.test(equipment || '') ? 'Reach gently overhead. Relax your shoulders and breathe.' : CUES[activeMovement]}</p>
+      <p className="exercise-demo__cue">{activeMovement === 'press' && /bodyweight/i.test(equipment || '') ? 'Reach gently overhead. Relax your shoulders and breathe.' : activeMovement === 'deadlift' && /bodyweight/i.test(equipment || '') ? 'Keep your arms folded. Move your hips back, then stand tall.' : activeMovement === 'walking' && /bodyweight/i.test(equipment || '') ? 'Walk at a comfortable pace. Keep your path clear and your shoulders relaxed.' : CUES[activeMovement]}</p>
     </section>
   );
 }

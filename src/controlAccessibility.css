@@ -1,0 +1,119 @@
+/* Choice controls need their own focus treatment, rather than the text-input
+   outline. Keep pointer selection quiet and keyboard focus on a visible shape. */
+label, summary {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+:is(.phone-training-form, .alternatives-choice, .alternatives-scope, .goal-plan-choice) input[type='radio'] {
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-block;
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  margin: 0;
+  padding: 0;
+  border: 1.5px solid #869d89;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: none;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+:is(.phone-training-form, .alternatives-choice, .alternatives-scope, .goal-plan-choice) input[type='radio']:checked {
+  border-color: #52785e;
+  background: radial-gradient(circle, #52785e 0 5px, #fff 5.5px);
+}
+
+:is(.phone-training-form, .alternatives-choice, .alternatives-scope, .goal-plan-choice) input[type='radio']:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+:is(.phone-training-form, .alternatives-choice, .alternatives-scope, .goal-plan-choice) input[type='radio']:focus-visible {
+  /* Box shadow follows the circle even in browsers that square native outlines. */
+  box-shadow: 0 0 0 3px #fff, 0 0 0 5px #52785e;
+}
+
+:is(.phone-training-form, .alternatives-choice, .alternatives-scope, .goal-plan-choice) input[type='radio']:disabled {
+  opacity: .5;
+  cursor: default;
+}
+
+.phone-training-form label { cursor: pointer; }
+
+/* These checkboxes are visible; their containing labels provide the tap area. */
+:is(.weekly-exercise-option, .weekly-mobility-choice) input[type='checkbox'] {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  padding: 0;
+  accent-color: #52785e;
+  border-radius: 4px;
+}
+
+:is(.weekly-exercise-option, .weekly-mobility-choice) input[type='checkbox']:focus:not(:focus-visible) {
+  outline: none;
+}
+
+:is(.weekly-exercise-option, .weekly-mobility-choice) input[type='checkbox']:focus-visible {
+  outline: 2px solid #52785e;
+  outline-offset: 3px;
+}
+
+/* Card and switch inputs remain native and keyboard accessible, but never draw
+   a second outline around their invisible 1px input. */
+:is(.gender-options, .goal-picker-option, .rest-day-option, .onboarding-option, .weekly-rest-toggle, .weekly-muscle-option, .builder-exercise) input:is([type='radio'], [type='checkbox']) {
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  clip-path: inset(50%);
+}
+
+:is(.gender-options, .goal-picker-option, .rest-day-option, .onboarding-option, .weekly-rest-toggle, .weekly-muscle-option, .builder-exercise) input:is([type='radio'], [type='checkbox']):focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.gender-options label:has(input:focus-visible),
+.goal-picker-option > input:focus-visible + .goal-picker-card,
+.rest-day-option > input:focus-visible + span,
+.onboarding-option > input:focus-visible + .onboarding-option-content,
+.weekly-rest-toggle > input:focus-visible + .weekly-toggle-track,
+.weekly-muscle-option > input:focus-visible + span,
+.builder-exercise:has(input:focus-visible) {
+  outline: 2px solid #52785e;
+  outline-offset: 3px;
+}
+
+@media (forced-colors: active) {
+  :is(.phone-training-form, .alternatives-choice, .alternatives-scope, .goal-plan-choice) input[type='radio'],
+  :is(.phone-training-form, .alternatives-choice, .alternatives-scope, .goal-plan-choice) input[type='radio']:checked {
+    appearance: auto;
+    -webkit-appearance: auto;
+    background: none;
+    border-color: ButtonText;
+  }
+
+  :is(.phone-training-form, .alternatives-choice, .alternatives-scope, .goal-plan-choice) input[type='radio']:focus-visible,
+  :is(.weekly-exercise-option, .weekly-mobility-choice) input[type='checkbox']:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 3px;
+    box-shadow: none;
+  }
+
+  .gender-options label:has(input:focus-visible),
+  .goal-picker-option > input:focus-visible + .goal-picker-card,
+  .rest-day-option > input:focus-visible + span,
+  .onboarding-option > input:focus-visible + .onboarding-option-content,
+  .weekly-rest-toggle > input:focus-visible + .weekly-toggle-track,
+  .weekly-muscle-option > input:focus-visible + span,
+  .builder-exercise:has(input:focus-visible) {
+    outline-color: Highlight;
+  }
+}

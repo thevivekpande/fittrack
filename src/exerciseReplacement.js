@@ -1,7 +1,8 @@
 import { EXERCISES, LEVELS, dateKey } from './data.js';
 import { exerciseUnit } from './exerciseSearch.js';
 import { getExerciseTarget, normalizeExerciseTargets } from './workoutTargets.js';
-import { updatePlanExercises } from './planning.js';
+import { materializePlanLocation, resolveBaseWeekPlans, saveDatePlan, updatePlanExercises } from './planning.js';
+import { adaptPlanForLocation } from './trainingLocation.js';
 
 export const REPLACEMENT_TARGET_NOTE = 'Matching units keep your target. A different unit uses an editable starting target.';
 
@@ -70,8 +71,11 @@ function calendarDate(value) {
   return { key, index: (parsed.getDay() + 6) % 7 };
 }
 
-function getBaseWeek(state, scopeKey, basePlans, trainingPlace) {
-  const week = state.weeklyPlans?.[scopeKey] || basePlans;
+function getBaseWeek(state, scopeKey, basePlans, trainingPlace, level) {
+  const source = state.planSources?.[level] || trainingPlace;
+  const week = source !== trainingPlace
+    ? resolveBaseWeekPlans({ ...state, level, trainingPlace, fitnessGoal: state.profile?.fitnessGoal, weeklyGoal: state.profile?.goal, gender: state.profile?.gender, restDays: state.profile?.restDays })
+    : state.weeklyPlans?.[scopeKey] || basePlans;
   if (!Array.isArray(week) || week.length !== 7 || new Set(week.map(plan => plan?.day)).size !== 7
     || week.some(plan => !days.includes(plan?.day))) throw new Error('Your weekly plan has changed. Reopen it before replacing an exercise.');
   const ordered = days.map(day => week.find(plan => plan.day === day));
@@ -94,16 +98,18 @@ export function applyExerciseReplacement(state, { sourceId, replacementId, date,
   if (!places.has(trainingPlace) || !levels.has(level)) throw new Error('Choose your training location and experience level first.');
   if (scope !== 'date' && scope !== 'weekly') throw new Error('Choose this date only or a recurring weekly replacement.');
   const selected = calendarDate(date);
+  if (scope === 'weekly') state = materializePlanLocation(state, { trainingPlace, level, basePlans });
   const scopeKey = `${trainingPlace}:${level}`;
   const prefix = `${scopeKey}:`;
   const key = `${prefix}${selected.key}`;
-  const week = getBaseWeek(state, scopeKey, basePlans, trainingPlace);
+  const week = getBaseWeek(state, scopeKey, basePlans, trainingPlace, level);
   const baseDay = week[selected.index];
   const overrides = state.customPlans || {};
 
   if (scope === 'date') {
-    const current = { ...baseDay, ...overrides[key] };
-    return { ...state, customPlans: { ...overrides, [key]: swapForPlace(current, sourceId, replacementId, trainingPlace) } };
+    const dateSource = state.datePlanSources?.[`${level}:${selected.key}`] || state.planSources?.[level] || trainingPlace;
+    const current = adaptPlanForLocation({ ...baseDay, ...overrides[`${dateSource}:${level}:${selected.key}`] }, trainingPlace);
+    return saveDatePlan(state, { date: selected.key, plan: swapForPlace(current, sourceId, replacementId, trainingPlace), trainingPlace, level });
   }
 
   if (!baseDay.exerciseIds.includes(sourceId)) throw new Error('This exercise is only in your date-specific workout. Choose this date only, or edit the recurring weekly plan first.');

@@ -1,0 +1,159 @@
+/* Keep the shared picker at home in compact filters and full-width forms. */
+.onboarding-input-icon > .touch-select .touch-select__trigger {
+  padding-left: 38px;
+}
+
+.onboarding-input-icon > svg {
+  top: 50%;
+  z-index: 1;
+  transform: translateY(-50%);
+}
+
+.onboarding-field .touch-select__trigger,
+.onboarding-field input:not([type='hidden']) {
+  min-height: 50px;
+}
+
+.onboarding-input-unit > span {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.goal-setup-weekly > .touch-select {
+  flex: 0 1 240px;
+  width: 240px;
+}
+
+.recomposition-cardio > .touch-select {
+  flex: 1 1 200px;
+  max-width: 300px;
+}
+
+.phone-library-filter > label {
+  flex: 1;
+  max-width: 220px;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.phone-library-filter .touch-select__trigger {
+  background: #f1f7ef;
+}
+
+.phone-library-filter > span {
+  padding-bottom: 16px;
+}
+
+.weekly-mobile-day .touch-select__trigger {
+  padding-inline: 10px;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.weekly-editor-mobile .weekly-rest-toggle {
+  min-height: 48px;
+}
+
+.weekly-mobile-filter {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 12px;
+}
+
+.weekly-mobile-filter > label {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.weekly-mobile-filter > .touch-select {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+.weekly-mobile-filter > span {
+  grid-column: 2;
+  grid-row: 1;
+  text-align: right;
+}
+
+.weekly-workout-fields input,
+.weekly-editor .weekly-workout-fields input,
+.weekly-editor-mobile .weekly-workout-fields input,
+.exercise-target-inputs input,
+.weekly-mobile-targets .exercise-target-inputs input {
+  min-height: 48px;
+  height: 48px;
+}
+
+:is(.weekly-workout-fields, .exercise-target-inputs, .onboarding-field) input:not(.touch-select__form-value) {
+  border-radius: 12px;
+  background: #fbfdfb;
+}
+
+:is(.weekly-workout-fields, .exercise-target-inputs, .onboarding-field) input:not(.touch-select__form-value):not([aria-invalid='true']) {
+  border-color: #d8e3d9;
+}
+
+.activity-heading > .touch-select {
+  flex: 0 1 152px;
+  width: 152px;
+  margin-left: auto;
+}
+
+/* This former select class now sits on the unstyled picker wrapper. */
+.touch-select.progress-range-select {
+  flex: 0 1 164px;
+  width: 164px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.exercise-demo__speed > .touch-select {
+  flex: 0 1 84px;
+  width: 84px;
+}
+
+.exercise-demo__speed .touch-select__trigger {
+  min-height: 48px;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid #d6e3d8;
+  border-radius: 12px;
+  background: #fff;
+  color: #365b46;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.exercise-demo__speed .touch-select__value {
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
+@media (max-width: 900px) {
+  .exercise-demo__speed .touch-select__trigger {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 560px) {
+  .goal-setup-weekly > .touch-select,
+  .recomposition-cardio > .touch-select {
+    flex: auto;
+    width: 100%;
+    max-width: none;
+  }
+
+  .weekly-workout-fields .touch-select__trigger,
+  .exercise-target-inputs .touch-select__trigger {
+    padding-inline: 10px;
+    gap: 8px;
+  }
+
+  .activity-heading > .touch-select,
+  .touch-select.progress-range-select {
+    flex-basis: 154px;
+    width: 154px;
+  }
+}

@@ -7,7 +7,7 @@ export const LEVELS = [
 ];
 
 export const TRAINING_PLACES = [
-  { id: 'home', label: 'At home', description: 'Bodyweight workouts · No gym equipment' },
+  { id: 'home', label: 'At home', description: 'Bodyweight & household items · No gym equipment' },
   { id: 'gym', label: 'At the gym', description: 'Weights, machines & more exercise options' },
 ];
 
@@ -257,6 +257,57 @@ export const EXERCISES = [
   {
     id: 'incline-plank', name: 'Elevated forearm plank', group: 'Core', equipment: 'Stable household support', duration: 4, calories: 16, movement: 'plank', image: photos.training,
     instructions: ['Rest your forearms on a secure raised surface with your elbows below your shoulders.', 'Step your feet back and hold a straight line from your shoulders to your heels.', 'Breathe steadily and end the hold before your hips sag or your shoulders tense.'],
+  },
+  // Household loads adapt the existing row, curl, press, and hip-hinge patterns.
+  // Filled-bottle resistance: https://www.nhs.uk/live-well/exercise/strength-exercises/
+  // Movement references: https://www.nasm.org/workout-exercise-guidance
+  {
+    id: 'backpack-row', name: 'Bent-over backpack row', group: 'Back', equipment: 'Light backpack', duration: 6, calories: 28, movement: 'row', image: photos.training,
+    instructions: ['Zip a lightly filled backpack securely and hold its sturdy straps close to the bag with both hands.', 'Soften your knees, hinge forward at your hips, and draw the bag toward your lower ribs with your elbows close.', 'Lower the bag slowly without rocking your torso; keep the load light enough to control.'],
+  },
+  {
+    id: 'single-arm-backpack-row', name: 'Single-arm backpack row', group: 'Back', equipment: 'Light backpack', duration: 6, calories: 28, movement: 'row', image: photos.training,
+    instructions: ['Use a zipped, lightly filled backpack with an intact carry handle. Take a staggered stance and rest your free hand on your front thigh.', 'Hinge forward and pull the bag toward your hip while keeping your back and pelvis steady.', 'Lower with control, finish the repetitions, and switch arms.'],
+  },
+  {
+    id: 'bottle-bent-over-row', name: 'Bent-over water-bottle row', group: 'Back', equipment: 'Filled water bottles', duration: 6, calories: 25, movement: 'row', image: photos.training,
+    instructions: ['Hold a securely capped bottle in each hand, soften your knees, and hinge at your hips.', 'Draw both bottles toward your hips with your elbows beside your body and your shoulders relaxed.', 'Lower both arms slowly while holding your torso steady. Use matching bottles and equal amounts of water.'],
+  },
+  {
+    id: 'bottle-biceps-curl', name: 'Water-bottle biceps curl', group: 'Biceps', equipment: 'Filled water bottles', duration: 5, calories: 20, movement: 'curl', image: photos.training,
+    instructions: ['Hold two matching, securely capped water bottles at your sides with your palms facing forward.', 'Bend your elbows to lift the bottles while keeping your upper arms beside your torso.', 'Lower slowly without swinging; use less water if you cannot keep the movement controlled.'],
+  },
+  {
+    id: 'bottle-hammer-curl', name: 'Water-bottle hammer curl', group: 'Biceps', equipment: 'Filled water bottles', duration: 5, calories: 20, movement: 'curl', image: photos.training,
+    instructions: ['Stand with a capped water bottle in each hand, palms facing inward toward your thighs.', 'Curl the bottles upward with your thumbs leading and your wrists straight.', 'Lower under control, keeping your elbows close to your sides.'],
+  },
+  {
+    id: 'bottle-shoulder-press', name: 'Water-bottle shoulder press', group: 'Shoulders', equipment: 'Filled water bottles', duration: 5, calories: 24, movement: 'press', image: photos.training,
+    instructions: ['Hold two light, securely capped bottles at shoulder level with your feet planted.', 'Press upward through a comfortable range, keeping your ribs over your hips.', 'Lower to shoulder level slowly without leaning backward.'],
+  },
+  {
+    id: 'bottle-lateral-raise', name: 'Water-bottle lateral raise', group: 'Shoulders', equipment: 'Filled water bottles', duration: 5, calories: 20, movement: 'lateralraise', image: photos.training,
+    instructions: ['Hold two light, securely capped bottles at your sides with a soft bend in your elbows.', 'Lift your arms out to the sides, stopping at or below shoulder height.', 'Lower slowly without shrugging or swinging; a small amount of water is enough to begin.'],
+  },
+  {
+    id: 'bottle-rear-delt-fly', name: 'Water-bottle rear delt fly', group: 'Shoulders', equipment: 'Filled water bottles', duration: 5, calories: 21, movement: 'reardeltfly', image: photos.training,
+    instructions: ['Hold two light, securely capped bottles and hinge forward with soft knees and a steady back.', 'Open your arms to the sides with your elbows slightly bent, stopping within a comfortable shoulder range.', 'Return slowly without lifting your torso or shrugging your shoulders.'],
+  },
+  {
+    id: 'bottle-overhead-triceps-extension', name: 'Water-bottle triceps extension', group: 'Triceps', equipment: 'Filled water bottles', duration: 5, calories: 20, movement: 'tricepsextension', image: photos.training,
+    instructions: ['Hold one light, securely capped bottle with both hands overhead, keeping your upper arms near your ears.', 'Bend your elbows to lower the bottle behind your head through a comfortable range.', 'Straighten your elbows without moving your upper arms or arching your back.'],
+  },
+  {
+    id: 'backpack-romanian-deadlift', name: 'Backpack Romanian deadlift', group: 'Legs', equipment: 'Light backpack', duration: 6, calories: 28, movement: 'deadlift', image: photos.training,
+    instructions: ['Hold a zipped, lightly filled backpack by its sturdy straps in front of your thighs, with your knees softly bent.', 'Push your hips backward and lower the bag close to your legs until you feel a comfortable stretch behind your thighs.', 'Bring your hips forward to stand, keeping your back steady and the bag close.'],
+  },
+  {
+    id: 'bodyweight-good-morning', name: 'Bodyweight good morning', group: 'Legs', equipment: 'Bodyweight', duration: 5, calories: 22, movement: 'deadlift', image: photos.training,
+    instructions: ['Stand with your feet hip-width apart, soften your knees, and fold your arms across your chest.', 'Move your hips back so your torso tilts forward while your back stays steady.', 'Stop within a comfortable range and return to standing by bringing your hips forward.'],
+  },
+  {
+    id: 'indoor-walk', name: 'Indoor walking', group: 'Cardio', equipment: 'Bodyweight', duration: 10, calories: 35, movement: 'walking', image: photos.cardio,
+    instructions: ['Choose a clear, level path at home with enough space to turn comfortably.', 'Walk at a steady, comfortable pace with relaxed shoulders and natural arm swings.', 'Turn slowly at the end of the path, keep walking for your chosen time, and slow down gradually to finish.'],
   },
   {
     id: 'barbell-bench-press', name: 'Barbell bench press', group: 'Chest', equipment: 'Barbell + bench', duration: 6, calories: 35, movement: 'benchpress', image: photos.weights,
