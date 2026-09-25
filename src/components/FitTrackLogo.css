@@ -1,0 +1,8 @@
+.fittrack-logo { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; vertical-align: middle; }
+.fittrack-logo__symbol { display: block; flex-shrink: 0; width: var(--fittrack-logo-size, 36px); height: var(--fittrack-logo-size, 36px); object-fit: contain; }
+.fittrack-logo__wordmark { color: #365b46; font-family: 'Manrope', sans-serif; font-weight: 800; font-size: inherit; letter-spacing: -.055em; line-height: 1.1; white-space: nowrap; }
+.fittrack-logo__wordmark > span { color: #557562; font-weight: 600; }
+.fittrack-logo--inverse .fittrack-logo__wordmark { color: #f5f9f0; }
+.fittrack-logo--inverse .fittrack-logo__wordmark > span { color: #d0e1c7; }
+.database-screen .fittrack-logo { --fittrack-logo-size: 64px; }
+.onboarding-story .fittrack-logo { --fittrack-logo-size: 42px; }

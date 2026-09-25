@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ArrowLeftRight, ArrowRight, CalendarDays, Check, ChevronDown, Dumbbell, LoaderCircle, Play, Repeat2, Search, X } from 'lucide-react';
 import { EQUIPMENT_OPTIONS, getExerciseAlternatives } from '../exerciseAlternatives';
 import { REPLACEMENT_TARGET_NOTE, swapExerciseInPlan } from '../exerciseReplacement';
@@ -17,8 +18,9 @@ function getLocalDate(value) {
   return Number.isFinite(result.getTime()) ? result : null;
 }
 
-export default function ExerciseAlternatives({ exercise, plan, trainingPlace, gender, date, allowWeekly = false, sessionOnly = false, onSave, onCancel }) {
+export default function ExerciseAlternatives({ exercise, plan, trainingPlace, gender, date, allowWeekly = false, sessionOnly = false, onSave, onCancel, footerTarget = null }) {
   const id = useId();
+  const formId = `${id}-form`;
   const [equipmentFilter, setEquipmentFilter] = useState('all');
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState('');
@@ -95,7 +97,12 @@ export default function ExerciseAlternatives({ exercise, plan, trainingPlace, ge
     finally { savingRef.current = false; setSaving(false); }
   }
 
-  return <form className="exercise-alternatives" onSubmit={handleSave} noValidate aria-busy={saving}>
+  const footer = <div className={`alternatives-footer${footerTarget ? ' alternatives-footer--pinned' : ''}`}>
+    <button className="alternatives-cancel" type="button" onClick={onCancel} disabled={saving}>Cancel</button>
+    <button className="alternatives-save" type="submit" form={formId} disabled={saving || !selected || !replacement.plan}>{saving ? <><LoaderCircle size={16} className="alternatives-spinner"/>Saving…</> : <>{effectiveScope === 'weekly' ? 'Replace in weekly plan' : effectiveScope === 'session' ? 'Replace in this workout' : 'Replace exercise'}<ArrowRight size={16}/></>}</button>
+  </div>;
+
+  return <><form id={formId} className="exercise-alternatives" onSubmit={handleSave} noValidate aria-busy={saving}>
     <p className="alternatives-intro">Choose a movement that fits your available equipment. Review its targets and illustration before you switch.</p>
     <div className="alternatives-original">
       <span className="alternatives-original-icon"><ArrowLeftRight size={21}/></span>
@@ -140,6 +147,6 @@ export default function ExerciseAlternatives({ exercise, plan, trainingPlace, ge
     </fieldset>}
     <p className="alternatives-scope-note">{effectiveScope === 'session' ? 'Applies to this unfinished workout. Your other plans and workout history stay saved.' : effectiveScope === 'weekly' ? 'Replace this exercise on this weekday each week. Other exercise choices and workout history stay saved.' : `Changes ${dateLabel} only. Your recurring weekly routine stays as it is.`}</p>
     {saveError && <p className="alternatives-error" role="alert">{saveError}</p>}
-    <div className="alternatives-footer"><button className="alternatives-cancel" type="button" onClick={onCancel} disabled={saving}>Cancel</button><button className="alternatives-save" type="submit" disabled={saving || !selected || !replacement.plan}>{saving ? <><LoaderCircle size={16} className="alternatives-spinner"/>Saving…</> : <>{effectiveScope === 'weekly' ? 'Replace in weekly plan' : effectiveScope === 'session' ? 'Replace in this workout' : 'Replace exercise'}<ArrowRight size={16}/></>}</button></div>
-  </form>;
+    {!footerTarget && footer}
+  </form>{footerTarget && createPortal(footer, footerTarget)}</>;
 }
