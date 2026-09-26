@@ -7,7 +7,9 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "android:prepare": "npm run build && node scripts/prepare-android.mjs",
+    "android:build": "npm run android:prepare && cd android && ./build.sh assembleDebug"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",

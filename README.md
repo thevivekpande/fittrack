@@ -31,7 +31,7 @@ Scan the desktop QR card to open [FitTrack on your phone](https://fittrack-three
 - Goal-based weekly suggestions for fat loss, muscle building, physique development, general fitness, and core strength. Suggestions adapt to your training location, experience, and chosen number of workouts and explicitly selected rest weekdays. Choose these in setup or **Settings → Choose training & rest days**. Existing profiles keep their schedule until edited.
 - Change goals from the dashboard or **Settings → Goals & suggested plan**, review the proposed week, and decide whether to keep or replace your custom routine. Every suggested day remains editable.
 - Editable name, gender, and weekly workout target.
-- Phone navigation keeps **Plan**, **Exercises**, **Progress**, and **More** within thumb reach. Overview, Settings, and achievements are in More. Today’s exercises appear below a compact week picker, with a persistent **Start/Resume workout** action. Use the Gym/Home chip to change training preferences and **Manage your plan** for goals, date edits, and the sheet plan.
+- Phone navigation keeps **Plan**, **Diet**, **Exercises**, **Progress**, and **More** within thumb reach. Health & activity, Overview, Settings, and achievements are in More. Today’s exercises appear below a compact week picker, with a persistent **Start/Resume workout** action. Use the Gym/Home chip to change training location and **Manage your plan** for goals, date edits, and the sheet plan.
 - Phone workouts show the next set target and a persistent **Log set** button, with undo, a rest timer, and exercise navigation. Expand **Workout exercises** to jump to another movement or **Form & 3D demo** for technique and animation. Previews load only when opened on phones. Full-screen dialogs keep their close and workout actions visible, use one scrolling body, and adapt to the keyboard and screen safe areas. Keyboard focus, scroll position, and reduced-motion preferences are preserved.
 - Mobile weekly editing focuses on one weekday at a time: add or remove exercises, switch to **Sets & targets**, and choose rest days. **Save week** stays within reach. The mobile library leads with search and muscle filtering, shows exercises in manageable batches, and marks movements already in today’s plan.
 - Gender selection controls demo representation and rotates comparable exercise variations; goals, experience, and equipment determine the workout difficulty. All exercises remain available to everyone. Non-binary and private selections use a neutral demo figure.
@@ -49,9 +49,33 @@ The plan preserves all **64 exact Hindi and English YouTube search links** from 
 
 Applying the sheet sets the location to Gym, the fitness goal to Build muscle & lose fat, and the weekly target to six workouts. It replaces the gym split for the selected experience level and its date edits from the current week onward. Your local profile's other details, completed history, unfinished session, and routines for other locations or levels stay saved. Gender changes the illustration, without substituting exercises in this exact sheet.
 
+## Diet planner
+
+Open **Diet** on a phone or **Diet planner** in the sidebar. Choose your eating style, food goal, allergies, and optional ingredient exclusions. Preferences and calorie/protein targets start blank. Targets are entered by you; the app does not prescribe a calorie deficit or daily requirement.
+
+Build a recurring Monday–Sunday menu with breakfast, lunch, dinner, and a snack. **Suggest meals** fills empty slots from the filtered meal library, preserving existing choices. Change any meal or portion, or add custom foods using recipe or package-label nutrition. Ingredients and allergens are visible on each meal. If your restrictions leave no matching choices, the slot stays empty. Ingredient filtering cannot assess manufacturing cross-contact.
+
+**Log eaten** records the actual portions for the selected date; future dates are planning only. Logged calories and macros are separate from planned totals. Later recipe or weekly-plan edits do not rewrite historical logs. Meals, preferences, and logs are saved locally alongside your workout data.
+
+## Android health companion
+
+The companion bundles the FitTrack interface and reads **steps, active energy, sleep, and weight** through Android Health Connect after you grant access. It can read data that Samsung Health or another supported app has shared with Health Connect. Open **More → Health & activity** to connect, manage permissions, sync, or disconnect. Only read permissions are requested.
+
+After connection, readings refresh when the companion opens or returns to the foreground; **Sync now** is also available. This does not run a continuous background service. Missing metrics remain blank, repeated syncs replace existing dates, and health readings stay separate from workout calorie estimates and manually logged weights.
+
+The Android companion, Chrome, and desktop each have separate local storage. Automatic Health Connect access runs inside the companion. Use **Export health data / Import snapshot** for a manual, health-only transfer to another FitTrack installation. Raw Samsung Health export archives are not supported, and this transfer is not a full workspace backup or cloud sync.
+
+Build the debug APK with Android Studio's JDK, Android SDK 36, and Build Tools 35.0.0 installed:
+
+```bash
+npm run android:build
+```
+
+The output is `android/app/build/outputs/apk/debug/app-debug.apk`. See [Android build and device checks](android/README.md) and [Samsung Health setup and data behavior](docs/health-connect.md). A physical Android phone with Health Connect and shared records is required to verify the actual permission and data flow.
+
 ## Your data
 
-Your profile, preferences, actual workout history, weight entries, weekly splits, custom day plans, and unfinished session are saved in **IndexedDB** (`fittrack` → `workspace` → `current`). No account or backend is required. First-time setup starts blank: no assumed name, selected level, goal, starting weight, or fabricated activity.
+Your profile, preferences, actual workout history, weight entries, weekly splits, custom day plans, unfinished session, diet planner, and imported/synced health readings are saved in **IndexedDB** (`fittrack` → `workspace` → `current`). No account or backend is required. First-time setup starts blank: no assumed name, selected level, goal, starting weight, or fabricated activity.
 
 Return using the **same browser and site address (including port)** to restore your workspace. The app remembers your last visit and resumes from your saved progress. Data is local to this browser, not synchronized across devices; clearing site data removes it. Save failures are shown with a retry option. A stale tab cannot silently overwrite progress saved in another tab.
 

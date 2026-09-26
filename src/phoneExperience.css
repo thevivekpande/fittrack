@@ -13,7 +13,7 @@
   .phone-context-button { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 8px 10px; color: #405b48; border: 1px solid #dbe3d5; border-radius: 22px; font-size: 13px; font-weight: 600; background: #fff; }
   .phone-profile-button { padding: 0; width: 44px; display: grid; place-items: center; }
   .phone-profile-button .avatar { width: 35px; height: 35px; font-size: 12px; }
-  .phone-workspace .mobile-bottom-nav { grid-template-columns: repeat(4, minmax(0, 1fr)); padding-top: 5px; padding-bottom: calc(5px + env(safe-area-inset-bottom)); box-shadow: none; }
+  .phone-workspace .mobile-bottom-nav { grid-template-columns: repeat(5, minmax(0, 1fr)); padding-top: 5px; padding-bottom: calc(5px + env(safe-area-inset-bottom)); box-shadow: none; }
   .phone-workspace .mobile-bottom-nav button { min-height: 56px; gap: 4px; border-radius: 13px; font-size: 11px; }
   .phone-workspace .mobile-bottom-nav button[aria-current='page'] { background: transparent; }
   .phone-workspace .mobile-bottom-nav button[aria-current='page'] svg { box-sizing: content-box; padding: 4px 17px; margin: -4px -17px; border-radius: 18px; background: #e1edcf; }

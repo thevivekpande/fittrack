@@ -2,3 +2,9 @@ node_modules
 dist
 .DS_Store
 test-results
+
+# Generated Android build files and bundled web assets
+/android/.gradle/
+/android/.kotlin/
+/android/**/build/
+/android/app/src/main/assets/web/

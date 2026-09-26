@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { Activity, AlertCircle, ArrowLeftRight, ArrowRight, ArrowUpRight, Award, Bell, CalendarDays, Check, CheckCheck, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Clock3, Dumbbell, Flame, Footprints, HardDrive, Heart, Home, LayoutDashboard, Leaf, Menu, Pause, Play, Plus, Search, SlidersHorizontal, Settings, Sparkles, Target, TrendingUp, Trophy, UserRound, X, Zap } from 'lucide-react';
+import { Activity, AlertCircle, ArrowLeftRight, ArrowRight, ArrowUpRight, Award, Bell, CalendarDays, Check, CheckCheck, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Clock3, Dumbbell, HeartPulse, Utensils, Flame, Footprints, HardDrive, Heart, Home, LayoutDashboard, Leaf, Menu, Pause, Play, Plus, Search, SlidersHorizontal, Settings, Sparkles, Target, TrendingUp, Trophy, UserRound, X, Zap } from 'lucide-react';
 import { LEVELS, TRAINING_PLACES, EXERCISES, getExercisesForPlace, dateKey, getWeekDates } from './data';
 import Progress, { ActivityChart } from './components/Progress';
 import { calculateStreak, exportSessions } from './storage';
@@ -25,14 +25,18 @@ import TrainingPreferences from './components/TrainingPreferences';
 import TrainingLocationSwitch from './components/TrainingLocationSwitch';
 import FitTrackLogo from './components/FitTrackLogo';
 import MoreMenu from './components/MoreMenu';
+import HealthConnect, { useHealthConnection } from './components/HealthConnect';
 import ExerciseAlternatives from './components/ExerciseAlternatives';
 import { applyExerciseReplacement } from './exerciseReplacement';
 
 const ExerciseDemo = lazy(() => import('./components/ExerciseDemo'));
+const DietPlanner = lazy(() => import('./components/DietPlanner'));
 const NAV = [
   {id:'dashboard',label:'Overview',icon:LayoutDashboard},
   {id:'plan',label:'My workout plan',icon:CalendarDays},
   {id:'library',label:'Exercise library',icon:Dumbbell},
+  {id:'diet',label:'Diet planner',icon:Utensils},
+  {id:'health',label:'Health & activity',icon:HeartPulse},
   {id:'progress',label:'My progress',icon:TrendingUp},
   {id:'achievements',label:'Achievements',icon:Trophy},
 ];
@@ -128,6 +132,9 @@ function Workspace({data,setData,returning,lastVisit,saving,saveError,saveConfli
   const [history,setHistory] = useDatabaseField(data,setData,'history');
   const [weights,setWeights] = useDatabaseField(data,setData,'weights');
   const [session,setSession] = useDatabaseField(data,setData,'session');
+  const [nutrition,setNutrition] = useDatabaseField(data,setData,'nutrition');
+  const [health,setHealth] = useDatabaseField(data,setData,'health');
+  const healthConnection = useHealthConnection(health,setHealth);
   const trainingPlace = data.trainingPlace;
   const customPlans = data.customPlans;
   const weeklyPlans = data.weeklyPlans || {};
@@ -326,12 +333,14 @@ function Workspace({data,setData,returning,lastVisit,saving,saveError,saveConfli
         </>)}
 
         {view==='progress'&&<Progress history={history} weights={weights} onAddWeight={entry=>{setWeights(old=>[entry,...old.filter(w=>w.date!==entry.date)]);notify('Weight logged. Your progress is saved.');}} onExport={()=>{exportSessions(history);notify('Your workout history is ready to download.');}}/>}
+        {view==='diet'&&<Suspense fallback={<p role="status">Opening your meal planner…</p>}><DietPlanner nutrition={nutrition} onChange={setNutrition} fitnessGoal={profile.fitnessGoal}/></Suspense>}
+        {view==='health'&&<HealthConnect health={health} connection={healthConnection}/>}
         {view==='achievements'&&<Achievements stats={stats}/>}
       </main>
     </div>
     <nav className="mobile-bottom-nav" aria-label="Quick navigation" inert={Boolean(modal)||moreOpen}>
-      {[{id:'plan',label:'Plan',icon:CalendarDays},{id:'library',label:'Exercises',icon:Dumbbell},{id:'progress',label:'Progress',icon:TrendingUp}].map(({id,label,icon:Icon})=><button key={id} aria-current={view===id?'page':undefined} onClick={()=>navigate(id)}><Icon size={21}/><span>{label}</span></button>)}
-      <button className={view==='achievements'||view==='dashboard'?'is-current':''} aria-label="More navigation options" aria-haspopup="dialog" aria-controls="workspace-navigation" aria-expanded={moreOpen} onClick={()=>setSidebarOpen(true)}><Menu size={21}/><span>More</span></button>
+      {[{id:'plan',label:'Plan',icon:CalendarDays},{id:'diet',label:'Diet',icon:Utensils},{id:'library',label:'Exercises',icon:Dumbbell},{id:'progress',label:'Progress',icon:TrendingUp}].map(({id,label,icon:Icon})=><button key={id} aria-current={view===id?'page':undefined} onClick={()=>navigate(id)}><Icon size={21}/><span>{label}</span></button>)}
+      <button className={view==='achievements'||view==='dashboard'||view==='health'?'is-current':''} aria-label="More navigation options" aria-haspopup="dialog" aria-controls="workspace-navigation" aria-expanded={moreOpen} onClick={()=>setSidebarOpen(true)}><Menu size={21}/><span>More</span></button>
     </nav>
     {toast&&!moreOpen&&<div className="toast" role="status"><span><Check size={16}/></span>{toast}<button aria-label="Dismiss notification" onClick={()=>setToast('')}><X size={15}/></button></div>}
     {modal&&<Modal footerRef={setFooterTarget} title={modal.type==='demo'?modal.exercise.name:modal.type==='workout'?'Your workout':modal.type==='settings'?'Make this space yours.':modal.type==='training'?'Training preferences':modal.type==='help'?'A little help getting started.':modal.type==='alternative'?'Find an alternative.':modal.type==='customize'?'Make this workout yours.':modal.type==='weekly'?'Build your weekly split.':modal.type==='goals'?'What are you training for?':modal.type==='recomposition'?'Your 6-day recomposition planner':modal.type==='reset-weekly'?'Restore your suggested program?':modal.type==='reload'?'Load your latest saved progress?':'You showed up. You got stronger.'} onClose={()=>setModal(null)} wide={modal.type==='workout'} weekly={modal.type==='weekly'} goal={modal.type==='goals'||modal.type==='recomposition'||modal.type==='alternative'}>
