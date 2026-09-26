@@ -2,6 +2,8 @@ import { useEffect, useSyncExternalStore } from 'react';
 import { EXERCISES, LEVELS, MUSCLE_GROUPS } from './data.js';
 import { FITNESS_GOALS, normalizeRestDays } from './goals.js';
 import { normalizeGender } from './profile.js';
+import { createEmptyHealth, normalizeHealth } from './healthData.js';
+import { createEmptyNutrition, normalizeNutrition } from './nutrition.js';
 import { getExerciseTarget, normalizeExerciseTargets } from './workoutTargets.js';
 
 const DATABASE_NAME = 'fittrack';
@@ -41,6 +43,8 @@ export function createEmptyWorkspace() {
     weeklyPlans: {},
     planSources: {},
     datePlanSources: {},
+    health: createEmptyHealth(),
+    nutrition: createEmptyNutrition(),
     visits: [],
     lastVisitAt: null,
   };
@@ -180,6 +184,8 @@ export function normalizeWorkspace(value) {
       const [level, date, extra] = key.split(':');
       return !extra && levels.has(level) && isCalendarDate(date) && ['home', 'gym'].includes(place);
     })),
+    health: normalizeHealth(value.health),
+    nutrition: normalizeNutrition(value.nutrition),
     visits: unique((Array.isArray(value.visits) ? value.visits : []).map(timestamp).filter(Boolean)).slice(-30),
     lastVisitAt: timestamp(value.lastVisitAt),
   };

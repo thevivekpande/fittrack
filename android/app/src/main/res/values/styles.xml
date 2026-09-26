@@ -1,0 +1,13 @@
+<resources>
+    <style name="Theme.FitTrack" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#557C60</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:statusBarColor">#FBFCF9</item>
+        <item name="android:navigationBarColor">#FBFCF9</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowBackground">#FBFCF9</item>
+    </style>
+</resources>
+
