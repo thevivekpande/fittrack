@@ -1,5 +1,5 @@
 import { dateKey, getWeekDates } from './data.js';
-import { getSuggestedWeekPlan, normalizeRestDays } from './goals.js';
+import { applyRestDaySchedule, getDefaultRestDays, getSuggestedWeekPlan, normalizeRestDays } from './goals.js';
 import { cloneExerciseTargets, getExerciseTarget, normalizeExerciseTargets } from './workoutTargets.js';
 import { estimateTargetSeconds } from './recompositionPlan.js';
 import { adaptPlanForLocation } from './trainingLocation.js';
@@ -70,7 +70,7 @@ export function updatePlanExercises(plan, chosen, exercises = chosen, previousPl
 export function resolveBaseWeekPlans({ level, trainingPlace, fitnessGoal, weeklyGoal, gender, restDays, weeklyPlans = {}, planSources = {} }) {
   const source = planSources[level] || trainingPlace;
   const template = weeklyPlans[`${source}:${level}`] || getSuggestedWeekPlan({ fitnessGoal, level, trainingPlace: source, weeklyGoal, gender, restDays });
-  return template.map(plan => adaptPlanForLocation(plan, trainingPlace));
+  return template.map(plan => adaptPlanForLocation(plan, trainingPlace, source));
 }
 
 export function resolveWeekPlans(options) {
@@ -80,8 +80,9 @@ export function resolveWeekPlans(options) {
   return template.map((plan, index) => {
     const date = dateKey(dates[index]);
     const dateSource = datePlanSources[`${level}:${date}`] || source;
-    const resolved = { ...plan, ...customPlans[`${dateSource}:${level}:${date}`] };
-    return adaptPlanForLocation(clonePlanDetails(resolved), trainingPlace);
+    const override = customPlans[`${dateSource}:${level}:${date}`];
+    const resolved = { ...plan, ...override };
+    return adaptPlanForLocation(clonePlanDetails(resolved), trainingPlace, override ? dateSource : source);
   });
 }
 
@@ -115,23 +116,76 @@ export function materializePlanLocation(state, { trainingPlace, level }) {
     const override = state.customPlans?.[`${dateSource}:${level}:${date}`];
     if (!override) continue;
     const weekday = (new Date(`${date}T12:00:00`).getDay() + 6) % 7;
-    customPlans[`${targetPrefix}${date}`] = adaptPlanForLocation({ ...week[weekday], ...override }, trainingPlace);
+    customPlans[`${targetPrefix}${date}`] = adaptPlanForLocation({ ...week[weekday], ...override }, trainingPlace, dateSource);
     datePlanSources[`${level}:${date}`] = trainingPlace;
   }
   return { ...state, customPlans, datePlanSources, planSources: { ...state.planSources, [level]: trainingPlace }, weeklyPlans: { ...state.weeklyPlans, [`${trainingPlace}:${level}`]: week.map(clonePlanDetails) } };
 }
 
-export function updateTrainingGoal(state, { fitnessGoal, weeklyGoal, gender, restDays, applySuggestion = false, trainingPlace, level }) {
+export function matchesWeeklySchedule(plans, weeklyGoal, restDays) {
+  const selected = normalizeRestDays(restDays, weeklyGoal);
+  return selected !== null && plans?.length === 7 && plans.every((plan, index) =>
+    selected.includes(index) ? plan.rest && plan.exerciseIds.length === 0 : !plan.rest && plan.exerciseIds.length > 0,
+  );
+}
+
+// Preserve saved workout order and targets while fitting the chosen calendar.
+// Additional days use the new goal's suggestions; fewer days keep the first
+// workouts in the sequence, exactly as shown in the Goals preview.
+export function rescheduleWeekPlans(plans, { weeklyGoal, restDays, suggestedPlans }) {
+  const selected = normalizeRestDays(restDays, weeklyGoal);
+  if (selected === null) throw new Error('Choose rest days that match your weekly workout target.');
+  const workouts = plans.filter(plan => !plan.rest && plan.exerciseIds.length);
+  const suggestions = suggestedPlans.filter(plan => !plan.rest && plan.exerciseIds.length);
+  const next = Array.from({ length: 7 }, (_, index) => {
+    if (index < weeklyGoal) {
+      const plan = workouts[index] || suggestions[index % suggestions.length];
+      if (!plan) throw new Error('A workout is missing. Choose a suggested plan and try again.');
+      return clonePlanDetails(plan);
+    }
+    return { day: '', title: 'Complete rest', focus: 'A day off from training', duration: 0,
+      exerciseIds: [], exerciseTargets: {}, sets: 1, reps: '6', muscleGroups: ['Mobility'],
+      rest: true, custom: false, customTitle: false, intensity: 'recovery' };
+  });
+  return applyRestDaySchedule(next, selected);
+}
+
+export function updateTrainingGoal(state, { fitnessGoal, weeklyGoal, gender, restDays, applySuggestion = false, applySchedule = false, keepSchedule = false, trainingPlace, level, fromDate = getWeekDates()[0] }) {
   const { restDays: previousRestDays, ...profile } = state.profile || {};
   const selectedRestDays = normalizeRestDays(restDays === undefined ? previousRestDays : restDays, weeklyGoal);
   let updated = { ...state, profile: { ...profile, fitnessGoal, goal: weeklyGoal, ...(gender !== undefined && { gender }),
     ...(selectedRestDays !== null && { restDays: selectedRestDays }),
   } };
   if (applySuggestion) {
-    updated = applyWeeklySplit(updated, { trainingPlace, level, plans: [] });
+    updated = applyWeeklySplit(updated, { trainingPlace, level, plans: [], fromDate });
     const nextWeekly = { ...updated.weeklyPlans };
     delete nextWeekly[`${trainingPlace}:${level}`];
     updated.weeklyPlans = nextWeekly;
+  } else if (applySchedule) {
+    // Keep the original equipment source so adjusting days while at home does
+    // not overwrite the user's gym exercise choices with home alternatives.
+    const source = state.planSources?.[level] || trainingPlace;
+    const original = resolveBaseWeekPlans({ ...state, level, trainingPlace: source,
+      fitnessGoal: state.profile?.fitnessGoal, weeklyGoal: state.profile?.goal,
+      gender: state.profile?.gender, restDays: state.profile?.restDays });
+    const chosenRestDays = selectedRestDays ?? getDefaultRestDays(weeklyGoal, level);
+    const suggestedPlans = getSuggestedWeekPlan({ fitnessGoal, weeklyGoal, gender: updated.profile.gender,
+      restDays: chosenRestDays, level, trainingPlace: source });
+    const plans = rescheduleWeekPlans(original, { weeklyGoal, restDays: chosenRestDays, suggestedPlans });
+    updated = applyWeeklySplit(updated, { trainingPlace: source, level, plans, fromDate });
+    updated.profile = { ...updated.profile, restDays: chosenRestDays };
+  } else if (keepSchedule) {
+    const source = state.planSources?.[level] || trainingPlace;
+    const scope = `${source}:${level}`;
+    if (!state.weeklyPlans?.[scope]) {
+      // Date-only customizations still use a generated base. Freeze that base
+      // before changing profile preferences, or an explicit Keep would rebuild it.
+      const plans = resolveBaseWeekPlans({ ...state, level, trainingPlace: source,
+        fitnessGoal: state.profile?.fitnessGoal, weeklyGoal: state.profile?.goal,
+        gender: state.profile?.gender, restDays: state.profile?.restDays });
+      updated.weeklyPlans = { ...state.weeklyPlans, [scope]: plans };
+      updated.planSources = { ...state.planSources, [level]: source };
+    }
   }
   return updated;
 }

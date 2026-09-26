@@ -7,6 +7,8 @@ import './GoalSetup.css';
 import GenderPicker from './GenderPicker';
 import { normalizeGender } from '../profile';
 import RestDayPicker from './RestDayPicker';
+import { matchesWeeklySchedule, rescheduleWeekPlans } from '../planning';
+import { adaptPlanForLocation } from '../trainingLocation';
 
 function initialRestDays(profile, trainingPlace, level) {
   // Stored preferences remain the user's choices, including when they need
@@ -17,13 +19,14 @@ function initialRestDays(profile, trainingPlace, level) {
   return normalizeRestDays(existing, profile?.goal) || [];
 }
 
-export default function GoalSetup({ profile, trainingPlace, level, hasCustomPlan, onSave, onCancel }) {
+export default function GoalSetup({ profile, trainingPlace, level, hasCustomPlan, sourcePlace = trainingPlace, sourcePlans = [], currentPlans = sourcePlans, onSave, onCancel }) {
   const id = useId();
   const [gender, setGender] = useState(profile?.gender || '');
   const [fitnessGoal, setFitnessGoal] = useState(profile?.fitnessGoal || '');
   const [weeklyGoal, setWeeklyGoal] = useState(String(profile?.goal ?? ''));
   const [restDays, setRestDays] = useState(() => initialRestDays(profile, trainingPlace, level));
-  const [planChoice, setPlanChoice] = useState('keep');
+  const initialRestDaysRef = useRef(restDays);
+  const [planChoice, setPlanChoice] = useState(null);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
@@ -32,8 +35,21 @@ export default function GoalSetup({ profile, trainingPlace, level, hasCustomPlan
   const goalValid = FITNESS_GOALS.some((goal) => goal.id === fitnessGoal);
   const weeklyValid = Number.isInteger(Number(weeklyGoal)) && Number(weeklyGoal) >= 1 && Number(weeklyGoal) <= 7;
   const restDaysValid = weeklyValid && normalizeRestDays(restDays, Number(weeklyGoal)) !== null;
-  const preview = goalValid && weeklyValid && restDaysValid && normalizeGender(gender) ? getSuggestedWeekPlan({ fitnessGoal, gender, trainingPlace, level, weeklyGoal: Number(weeklyGoal), restDays }) : null;
-  const applySuggestion = !hasCustomPlan || planChoice === 'suggested';
+  const canPreview = goalValid && weeklyValid && restDaysValid && normalizeGender(gender);
+  const scheduleMatches = matchesWeeklySchedule(currentPlans, Number(weeklyGoal), restDays);
+  const scheduleChanged = Number(weeklyGoal) !== Number(profile?.goal)
+    || [...restDays].sort().join(',') !== [...initialRestDaysRef.current].sort().join(',');
+  const selectedChoice = !hasCustomPlan ? 'suggested' : planChoice || (scheduleMatches && !scheduleChanged ? 'keep' : 'schedule');
+  const applySuggestion = selectedChoice === 'suggested';
+  const applySchedule = selectedChoice === 'schedule';
+  const preview = !canPreview ? null : applySuggestion
+    ? getSuggestedWeekPlan({ fitnessGoal, gender, trainingPlace, level, weeklyGoal: Number(weeklyGoal), restDays })
+    : applySchedule
+      ? rescheduleWeekPlans(sourcePlans, { weeklyGoal: Number(weeklyGoal), restDays,
+        suggestedPlans: getSuggestedWeekPlan({ fitnessGoal, gender, trainingPlace: sourcePlace, level, weeklyGoal: Number(weeklyGoal), restDays }),
+      }).map(plan => adaptPlanForLocation(plan, trainingPlace, sourcePlace))
+      : currentPlans;
+  const keptWorkoutCount = currentPlans.filter(plan => !plan.rest).length;
   const placeLabel = trainingPlace === 'home' ? 'home' : 'gym';
   const levelLabel = level === 'medium' ? 'medium' : level === 'experienced' ? 'experienced' : 'beginner';
 
@@ -62,7 +78,7 @@ export default function GoalSetup({ profile, trainingPlace, level, hasCustomPlan
     setSaving(true);
     setSaveError('');
     try {
-      await onSave({ fitnessGoal, gender, weeklyGoal: Number(weeklyGoal), restDays: normalizeRestDays(restDays, Number(weeklyGoal)), applySuggestion });
+      await onSave({ fitnessGoal, gender, weeklyGoal: Number(weeklyGoal), restDays: normalizeRestDays(restDays, Number(weeklyGoal)), applySuggestion, applySchedule, keepSchedule: selectedChoice === 'keep' });
     } catch (error) {
       setSaveError(error?.message || 'Your goal couldn’t be saved. Please try again.');
     } finally {
@@ -77,12 +93,16 @@ export default function GoalSetup({ profile, trainingPlace, level, hasCustomPlan
     <GoalPicker value={fitnessGoal} onChange={(value) => { setFitnessGoal(value); setErrors((current) => ({ ...current, fitnessGoal: undefined })); setSaveError(''); }} disabled={saving} error={errors.fitnessGoal} />
     <div className="goal-setup-weekly"><div><label htmlFor={`${id}-weekly`}>Weekly workout target</label><p>Build a rhythm you can return to.</p></div><TouchSelect id={`${id}-weekly`} name="weeklyGoal" value={weeklyGoal} disabled={saving} required aria-invalid={Boolean(errors.weeklyGoal)} aria-describedby={errors.weeklyGoal ? `${id}-weekly-error` : undefined} onChange={(event) => updateWeeklyGoal(event.target.value)}><option value="" disabled>Choose your target</option>{[1, 2, 3, 4, 5, 6, 7].map((number) => <option key={number} value={number}>{number} workout{number === 1 ? '' : 's'} per week</option>)}</TouchSelect></div>
     {errors.weeklyGoal && <p id={`${id}-weekly-error`} className="goal-setup-field-error">{errors.weeklyGoal}</p>}
-    {weeklyValid && <RestDayPicker weeklyGoal={Number(weeklyGoal)} value={restDays} onChange={value => { setRestDays(value); setErrors(current => ({ ...current, restDays: undefined })); setSaveError(''); }} disabled={saving} error={errors.restDays} note={hasCustomPlan && !applySuggestion ? 'These preferences are saved for suggested plans. Keeping your custom split keeps its existing training and rest schedule.' : 'The suggested workouts move around these days. Your chosen rest days have no scheduled exercises.'}/>}
+    {weeklyValid && <RestDayPicker weeklyGoal={Number(weeklyGoal)} value={restDays} onChange={value => { setRestDays(value); setErrors(current => ({ ...current, restDays: undefined })); setSaveError(''); }} disabled={saving} error={errors.restDays} note={selectedChoice === 'keep' ? 'Keeping the current schedule saves these preferences only. Choose Adjust my current plan to apply these days.' : 'Your chosen rest days will have no scheduled exercises.'}/>}
     <GoalApproach goalId={fitnessGoal} />
-    {hasCustomPlan && <fieldset className="goal-plan-choice" disabled={saving}><legend>How would you like to use your goal?</legend><p>You have a custom plan or individual day edits for your {placeLabel} {levelLabel} routine.</p><div>{[{ value: 'keep', title: 'Keep my custom split', description: 'Save my goal and weekly target while keeping my plan.' }, { value: 'suggested', title: 'Use suggested plan', description: 'Replace this routine with the suggested week below.' }].map((option) => <label key={option.value}><input type="radio" name={`${id}-planChoice`} value={option.value} checked={planChoice === option.value} onChange={() => setPlanChoice(option.value)} /><span><strong>{option.title}</strong><small>{option.description}</small></span><Check size={13} aria-hidden="true" /></label>)}</div>{applySuggestion && <p className="goal-replacement-note">Saving replaces your {placeLabel} {levelLabel} custom plan and individual day edits from this week onward. Your workout history and active workout are kept.</p>}</fieldset>}
-    {preview && <SuggestedWeekPreview plans={preview} />}
-    {hasCustomPlan && !applySuggestion && preview && <p className="goal-setup-keep-note">This preview uses your preferred rest days. Your saved custom split and individual day edits keep their existing schedule until you choose Use suggested plan.</p>}
+    {hasCustomPlan && <fieldset className="goal-plan-choice" disabled={saving}><legend>How should your plan change?</legend><p>You have saved workouts or individual day edits for your {placeLabel} {levelLabel} routine.</p><div>{[
+      { value: 'schedule', title: 'Adjust my current plan', description: 'Keep my workout order and exercise targets. Fit them to the selected training days.' },
+      { value: 'suggested', title: 'Use suggested plan', description: 'Build a fresh week for my goal and selected days.' },
+      { value: 'keep', title: 'Keep current schedule', description: `Save goal preferences only. Keep this week’s ${keptWorkoutCount} workouts and all date edits.` },
+    ].map((option) => <label key={option.value}><input type="radio" name={`${id}-planChoice`} value={option.value} checked={selectedChoice === option.value} onChange={() => setPlanChoice(option.value)} /><span><strong>{option.title}</strong><small>{option.description}</small></span><Check size={13} aria-hidden="true" /></label>)}</div>{(applySuggestion || applySchedule) && <p className="goal-replacement-note">{applySchedule ? 'Fewer days keep the first workouts in your saved sequence; extra days use suggestions. Review the week below. ' : ''}Saving replaces individual day edits from this week onward. Your workout history and active workout are kept.</p>}</fieldset>}
+    {preview && <SuggestedWeekPreview plans={preview} title={applySchedule ? 'Your adjusted week' : applySuggestion ? 'Your suggested week' : 'Your current week'} note={selectedChoice === 'keep' ? 'Your saved weekly plan and individual date edits will stay unchanged.' : undefined}/>}
+    {hasCustomPlan && selectedChoice === 'keep' && !scheduleMatches && preview && <p className="goal-setup-keep-note">Your plan stays at {keptWorkoutCount} workouts this week. The {weeklyGoal}-workout target and chosen rest days will only apply when you adjust or replace your plan.</p>}
     {saveError && <p className="goal-setup-save-error" role="alert">{saveError}</p>}
-    <div className="goal-setup-footer"><span>{applySuggestion ? 'A fresh direction for your next workout.' : 'Your goal. Your own routine.'}</span><div><button type="button" className="goal-setup-cancel" onClick={onCancel} disabled={saving}>Cancel</button><button type="submit" className="goal-setup-save" disabled={saving}>{saving ? <><LoaderCircle size={16} className="goal-setup-spinner" />Saving…</> : <>{applySuggestion ? 'Save goal & plan' : 'Save fitness goal'}<ArrowRight size={15} /></>}</button></div></div>
+    <div className="goal-setup-footer"><span>{applySuggestion || applySchedule ? 'The preview is the week you’ll save.' : 'Your current schedule stays saved.'}</span><div><button type="button" className="goal-setup-cancel" onClick={onCancel} disabled={saving}>Cancel</button><button type="submit" className="goal-setup-save" disabled={saving}>{saving ? <><LoaderCircle size={16} className="goal-setup-spinner" />Saving…</> : <>{applySuggestion || applySchedule ? 'Save goal & plan' : 'Save goal only'}<ArrowRight size={15} /></>}</button></div></div>
   </form>;
 }

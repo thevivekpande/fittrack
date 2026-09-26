@@ -7,6 +7,33 @@ import { estimateTargetSeconds } from './recompositionPlan.js';
 
 const catalog = new Map(EXERCISES.map(exercise => [exercise.id, exercise]));
 const places = new Set(['home', 'gym']);
+const gymEquivalents = Object.freeze({
+  'backpack-row': 'dumbbell-row',
+  'single-arm-backpack-row': 'single-arm-dumbbell-row',
+  'bottle-bent-over-row': 'dumbbell-row',
+  'bottle-biceps-curl': 'bicep-curl',
+  'bottle-hammer-curl': 'hammer-curl',
+  'bottle-shoulder-press': 'shoulder-press',
+  'bottle-lateral-raise': 'lateral-raise',
+  'bottle-rear-delt-fly': 'rear-delt-fly',
+  'bottle-overhead-triceps-extension': 'overhead-triceps-extension',
+  'backpack-romanian-deadlift': 'romanian-deadlift',
+  'bodyweight-squat': 'goblet-squat',
+  'sumo-squat': 'dumbbell-sumo-squat',
+  'chair-squat': 'goblet-squat',
+  'reverse-lunge': 'dumbbell-reverse-lunge',
+  'forward-lunge': 'walking-lunge',
+  'split-squat': 'dumbbell-split-squat',
+  'glute-bridge': 'dumbbell-hip-thrust',
+  'standing-calf-raise': 'dumbbell-calf-raise',
+  'bodyweight-good-morning': 'romanian-deadlift',
+  'push-up': 'bench-press',
+  'wide-push-up': 'bench-press',
+  'incline-push-up': 'incline-bench-press',
+  'knee-push-up': 'chest-press-machine',
+  'wall-push-up': 'chest-press-machine',
+  'narrow-push-up': 'triceps-pushdown',
+});
 
 // The first location switch pins the routine, not its equipment. Always project
 // from that source so returning to the gym restores the exact saved exercises.
@@ -40,10 +67,35 @@ function candidatesFor(source, trainingPlace) {
   return [...ranked, ...EXERCISES.filter(candidate => candidate.places.includes(trainingPlace) && sameFocus(candidate) && !used.has(candidate.id))];
 }
 
-export function adaptPlanForLocation(plan, trainingPlace) {
+function gymCandidatesFor(source, plan) {
+  // A shared `places` flag describes where a movement is possible, not which
+  // equipment best fits a location. Household resistance has gym equivalents;
+  // deliberate bodyweight choices in custom plans remain the user's choice.
+  const householdResistance = /backpack|water bottles/i.test(source.equipment);
+  if (plan.rest || plan.intensity === 'light' || (plan.custom && !householdResistance)) return [];
+  const preferred = catalog.get(gymEquivalents[source.id]);
+  if (!preferred) return [];
+  const alternatives = getExerciseAlternatives({ exercise: source, trainingPlace: 'gym' })
+    .map(item => item.exercise)
+    .filter(candidate => candidate.group === source.group && !candidate.places.includes('home')
+      && exerciseUnit(candidate) === exerciseUnit(source));
+  // Preferred variants keep the movement specific (e.g. a single-arm row or a
+  // hammer curl); ranked alternatives avoid duplicate rows when already used.
+  return [preferred, ...alternatives.filter(candidate => candidate.id !== preferred.id)];
+}
+
+export function adaptPlanForLocation(plan, trainingPlace, sourcePlace = trainingPlace) {
   const copy = structuredClone(plan);
-  if (!places.has(trainingPlace) || plan.exerciseIds.every(id => catalog.get(id)?.places.includes(trainingPlace))) return copy;
-  const reserved = new Set(plan.exerciseIds.filter(id => catalog.get(id)?.places.includes(trainingPlace)));
+  if (!places.has(trainingPlace)) return copy;
+  const candidatesById = new Map(plan.exerciseIds.map(id => {
+    const source = catalog.get(id);
+    if (!source) throw new Error('An exercise is unavailable. Edit this workout before switching training location.');
+    if (!source.places.includes(trainingPlace)) return [id, candidatesFor(source, trainingPlace)];
+    const gymCandidates = sourcePlace === 'home' && trainingPlace === 'gym' ? gymCandidatesFor(source, plan) : [];
+    return [id, gymCandidates.length ? gymCandidates : [source]];
+  }));
+  if (plan.exerciseIds.every(id => candidatesById.get(id)[0]?.id === id)) return copy;
+  const reserved = new Set(plan.exerciseIds.filter(id => candidatesById.get(id)[0]?.id === id));
   const used = new Set();
   const exerciseIds = [];
   const exerciseTargets = {};
@@ -53,8 +105,7 @@ export function adaptPlanForLocation(plan, trainingPlace) {
 
   for (const id of plan.exerciseIds) {
     const source = catalog.get(id);
-    if (!source) throw new Error('An exercise is unavailable. Edit this workout before switching training location.');
-    const candidates = source.places.includes(trainingPlace) ? [source] : candidatesFor(source, trainingPlace);
+    const candidates = candidatesById.get(id);
     const replacement = candidates.find(candidate => !used.has(candidate.id) && (!reserved.has(candidate.id) || candidate.id === id)) || candidates[0];
     if (!replacement) throw new Error(`No ${trainingPlace} alternative is available for ${source.name}.`);
     const target = targetForAlternative(plan, source, replacement);

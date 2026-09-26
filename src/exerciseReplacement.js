@@ -108,7 +108,8 @@ export function applyExerciseReplacement(state, { sourceId, replacementId, date,
 
   if (scope === 'date') {
     const dateSource = state.datePlanSources?.[`${level}:${selected.key}`] || state.planSources?.[level] || trainingPlace;
-    const current = adaptPlanForLocation({ ...baseDay, ...overrides[`${dateSource}:${level}:${selected.key}`] }, trainingPlace);
+    const override = overrides[`${dateSource}:${level}:${selected.key}`];
+    const current = adaptPlanForLocation({ ...baseDay, ...override }, trainingPlace, override ? dateSource : trainingPlace);
     return saveDatePlan(state, { date: selected.key, plan: swapForPlace(current, sourceId, replacementId, trainingPlace), trainingPlace, level });
   }
 

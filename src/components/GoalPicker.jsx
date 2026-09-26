@@ -39,17 +39,17 @@ export function GoalApproach({ goalId }) {
   </div>;
 }
 
-export function SuggestedWeekPreview({ plans, compact = false }) {
+export function SuggestedWeekPreview({ plans, compact = false, title, note }) {
   if (!plans?.length) return null;
   const trainingDays = plans.filter((plan) => !plan.rest).length;
-  return <section className={`goal-week-preview${compact ? ' goal-week-preview--compact' : ''}`} aria-label="Suggested weekly plan preview">
-    <div className="goal-week-heading"><h3>{compact ? 'Your week, at a glance' : 'Your suggested week'}</h3><span>{trainingDays} workout{trainingDays === 1 ? '' : 's'} · {plans.length - trainingDays} recovery day{plans.length - trainingDays === 1 ? '' : 's'}</span></div>
+  return <section className={`goal-week-preview${compact ? ' goal-week-preview--compact' : ''}`} aria-label={title || 'Suggested weekly plan preview'}>
+    <div className="goal-week-heading"><h3>{title || (compact ? 'Your week, at a glance' : 'Your suggested week')}</h3><span>{trainingDays} workout{trainingDays === 1 ? '' : 's'} · {plans.length - trainingDays} recovery day{plans.length - trainingDays === 1 ? '' : 's'}</span></div>
     <div className="goal-week-days">{plans.map((plan) => <div className={`goal-week-day${plan.rest ? ' is-recovery' : ''}`} key={plan.day} title={`${plan.day}: ${plan.title} · ${plan.duration} minutes`} aria-label={compact ? `${plan.day}: ${plan.title}, ${plan.duration} minutes` : undefined}>
       <span className="goal-week-day-label">{plan.day}</span>
       {plan.rest ? <Leaf size={compact ? 15 : 17} strokeWidth={1.6} /> : <Dumbbell size={compact ? 15 : 17} strokeWidth={1.6} />}
       {!compact && <><strong>{plan.title}</strong><small>{plan.rest ? 'Recovery' : plan.intensity === 'light' ? 'Light session' : `${plan.duration} min`}</small></>}
     </div>)}</div>
-    {plans[0]?.programId === 'six-day-recomposition' && <p className="goal-week-edit-note">Follows the workout sequence from the 6-Day YouTube Gym Playlist, with {plans.filter(plan => plan.rest).map(plan => plan.day).join(', ')} off. Sets, reps, and timed targets are editable FitTrack suggestions; the source sheet does not specify them.</p>}
-    <p className="goal-week-edit-note">This week repeats until you change it. After saving, choose Edit weekly plan to select your own exercises.</p>
+    {trainingDays === 6 && plans[0]?.programId === 'six-day-recomposition' && <p className="goal-week-edit-note">Follows the workout sequence from the 6-Day YouTube Gym Playlist, with {plans.filter(plan => plan.rest).map(plan => plan.day).join(', ')} off. Sets, reps, and timed targets are editable FitTrack suggestions; the source sheet does not specify them.</p>}
+    <p className="goal-week-edit-note">{note || 'This week repeats until you change it. After saving, choose Edit weekly plan to select your own exercises.'}</p>
   </section>;
 }

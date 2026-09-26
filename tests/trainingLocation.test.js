@@ -6,8 +6,10 @@ import { getExerciseMuscles } from '../src/muscleData.js';
 import { exerciseUnit } from '../src/exerciseSearch.js';
 import { getRecompositionWeekPlan } from '../src/recompositionPlan.js';
 import { adaptPlanForLocation, changeTrainingLocation } from '../src/trainingLocation.js';
-import { applyWeeklySplit, estimateWorkoutMinutes, resolveBaseWeekPlans, resolveWeekPlans, saveDatePlan } from '../src/planning.js';
+import { applyWeeklySplit, estimateWorkoutMinutes, resolveBaseWeekPlans, resolveWeekPlans, saveDatePlan, updateTrainingGoal } from '../src/planning.js';
 import { applyExerciseReplacement } from '../src/exerciseReplacement.js';
+import { FITNESS_GOALS } from '../src/goals.js';
+import { getExerciseTarget } from '../src/workoutTargets.js';
 
 const catalog = new Map(EXERCISES.map(exercise => [exercise.id, exercise]));
 const dates = Array.from({ length: 7 }, (_, index) => new Date(2026, 8, 7 + index, 12));
@@ -170,6 +172,146 @@ test('same-location adaptation returns an independent exact copy, including per-
   assert.notEqual(adapted.exerciseVideoLinks['bench-press'], plan.exerciseVideoLinks['bench-press']);
 });
 
+test('a suggested home routine uses gym strength equipment without changing its split or recovery days', () => {
+  for (const level of levels) for (const goal of [...FITNESS_GOALS, { id: null }]) {
+    const original = freeze(workspace({
+      level, trainingPlace: 'home', weeklyPlans: {},
+      profile: { name: 'Alex', goal: 5, fitnessGoal: goal.id, gender: 'prefer-not-to-say', restDays: [2, 6] },
+    }));
+    const homeWeek = resolveWeekPlans(options(original));
+    const atGym = changeTrainingLocation(original, { trainingPlace: 'gym' });
+    const gymWeek = resolveWeekPlans(options(atGym));
+    assertSameSchedule(homeWeek, gymWeek, 'gym');
+    homeWeek.forEach((plan, day) => {
+      if (plan.rest || plan.intensity === 'light') {
+        assert.deepEqual(gymWeek[day], plan, `${goal.id}/${level}: recovery stays gentle`);
+        return;
+      }
+      assert.ok(gymWeek[day].exerciseIds.some(id => !catalog.get(id).places.includes('home')), `${goal.id}/${level}/${day}: strength uses gym equipment`);
+      plan.exerciseIds.forEach((id, index) => {
+        const source = catalog.get(id);
+        const replacement = catalog.get(gymWeek[day].exerciseIds[index]);
+        if (['Core', 'Cardio', 'Mobility'].includes(source.group)) assert.equal(replacement.id, id);
+        assert.deepEqual(getExerciseTarget(gymWeek[day], replacement), getExerciseTarget(plan, source));
+      });
+    });
+    assert.deepEqual(resolveWeekPlans(options(changeTrainingLocation(atGym, { trainingPlace: 'home' }))), homeWeek);
+    assert.deepEqual(resolveWeekPlans(options(normalizeWorkspace(clone(atGym)))), gymWeek);
+    assert.equal(atGym.history, original.history);
+    assert.equal(atGym.session, original.session);
+  }
+});
+
+test('home household resistance uses matching gym equipment even in a custom workout', () => {
+  const ids = EXERCISES.filter(exercise => /backpack|water bottles/i.test(exercise.equipment)).map(exercise => exercise.id);
+  const plan = freeze({
+    day: 'Mon', title: 'My household strength plan', focus: 'Upper body & legs',
+    muscleGroups: [...new Set(ids.map(id => catalog.get(id).group))], rest: false, custom: true,
+    exerciseIds: ids, sets: 3, reps: '10–12', duration: 35,
+    exerciseTargets: Object.fromEntries(ids.map(id => [id, { sets: 3, reps: '10–12', unit: 'reps', restSeconds: 70 }])),
+    exerciseVideoLinks: Object.fromEntries(ids.map(id => [id, { english: 'https://www.youtube.com/results?search_query=home+water+bottle+workout' }])),
+  });
+  const gym = adaptPlanForLocation(plan, 'gym', 'home');
+  assertSameSchedule([plan], [gym], 'gym');
+  gym.exerciseIds.forEach((id, index) => {
+    assert.ok(!catalog.get(id).places.includes('home'), `${id} uses gym equipment`);
+    assert.deepEqual(gym.exerciseTargets[id], plan.exerciseTargets[ids[index]]);
+    assert.notDeepEqual(gym.exerciseVideoLinks[id], plan.exerciseVideoLinks[ids[index]], 'home-equipment tutorials do not describe gym replacements');
+  });
+  assert.equal(gym.exerciseIds[ids.indexOf('single-arm-backpack-row')], 'single-arm-dumbbell-row');
+  assert.equal(gym.exerciseIds[ids.indexOf('bottle-hammer-curl')], 'hammer-curl');
+  assert.equal(gym.exerciseIds[ids.indexOf('bottle-overhead-triceps-extension')], 'overhead-triceps-extension');
+  assert.equal(gym.locationAdapted, true);
+  assert.deepEqual(adaptPlanForLocation(plan, 'home', 'home'), plan);
+  assert.deepEqual(adaptPlanForLocation(plan, 'gym', 'gym'), plan, 'a source gym routine is never rewritten simply because household equipment is also usable there');
+});
+
+test('saving a generated home schedule keeps its gym alternatives identical after persistence', () => {
+  for (const choice of [{ keepSchedule: true, weeklyGoal: 3, restDays: [1, 3, 5, 6] }, { applySchedule: true, weeklyGoal: 4, restDays: [1, 4, 6] }]) {
+    const source = workspace({
+      trainingPlace: 'home', weeklyPlans: {},
+      profile: { name: 'Alex', goal: 3, fitnessGoal: 'build-muscle', gender: 'prefer-not-to-say', restDays: [1, 3, 5, 6] },
+    });
+    const atGym = changeTrainingLocation(source, { trainingPlace: 'gym' });
+    const saved = updateTrainingGoal(atGym, {
+      ...choice, fitnessGoal: 'fat-loss', trainingPlace: 'gym', level: 'beginner', fromDate: dates[0],
+    });
+    assert.equal(saved.planSources.beginner, 'home');
+    assert.ok(saved.weeklyPlans['home:beginner'].every(plan => plan.custom === false));
+    const beforeReload = resolveWeekPlans(options(saved));
+    assert.equal(beforeReload.filter(plan => !plan.rest).length, choice.weeklyGoal);
+    assert.ok(beforeReload.some(plan => plan.exerciseIds.some(id => !catalog.get(id).places.includes('home'))));
+    const reloaded = normalizeWorkspace(clone(saved));
+    assert.ok(reloaded.weeklyPlans['home:beginner'].every(plan => plan.custom === false));
+    assert.deepEqual(resolveWeekPlans(options(reloaded)), beforeReload, 'normalization cannot turn the displayed gym plan back into home exercises');
+    assert.deepEqual(normalizeWorkspace(reloaded), reloaded, 'the generated marker remains stable through repeated saves');
+    const backHome = changeTrainingLocation(reloaded, { trainingPlace: 'home' });
+    assert.deepEqual(resolveWeekPlans(options(backHome)), saved.weeklyPlans['home:beginner']);
+  }
+});
+
+test('saved custom and legacy bodyweight choices remain intentional after persistence', () => {
+  for (const legacy of [false, true]) {
+    const homeWeek = getWeekPlan('beginner', 'home').map(plan => ({ ...plan, custom: true,
+      muscleGroups: [...new Set(plan.exerciseIds.map(id => catalog.get(id).group))] }));
+    const savedWeek = legacy ? homeWeek.map(({ custom, ...plan }) => plan) : homeWeek;
+    const state = workspace({ trainingPlace: 'home', weeklyPlans: { 'home:beginner': savedWeek }, planSources: { beginner: 'home' } });
+    const reloaded = normalizeWorkspace(clone(state));
+    assert.ok(reloaded.weeklyPlans['home:beginner'].every(plan => plan.custom === true));
+    const atGym = changeTrainingLocation(reloaded, { trainingPlace: 'gym' });
+    assert.deepEqual(resolveWeekPlans(options(atGym)), homeWeek, 'explicit and legacy bodyweight choices are not automatically loaded with weights');
+  }
+});
+
+test('intentional custom bodyweight, core and continuous cardio choices remain valid at the gym', () => {
+  const plan = freeze({
+    ...customWeek()[0], title: 'My bodyweight session',
+    exerciseIds: ['push-up', 'bodyweight-squat', 'superman', 'plank', 'indoor-walk'],
+    exerciseTargets: { 'indoor-walk': { sets: 1, reps: '20', unit: 'min', restSeconds: 0 } },
+    exerciseVideoLinks: {},
+  });
+  assert.deepEqual(adaptPlanForLocation(plan, 'gym', 'home'), plan);
+});
+
+test('a gym replacement does not consume a gym exercise already chosen elsewhere in the workout', () => {
+  const plan = {
+    ...customWeek()[0], exerciseIds: ['bottle-biceps-curl', 'bicep-curl'],
+    exerciseTargets: {
+      'bottle-biceps-curl': { sets: 2, reps: '15', unit: 'reps', restSeconds: 30 },
+      'bicep-curl': { sets: 4, reps: '8', unit: 'reps', restSeconds: 90 },
+    },
+  };
+  const gym = adaptPlanForLocation(plan, 'gym', 'home');
+  assert.equal(gym.exerciseIds.length, 2);
+  assert.equal(gym.exerciseIds[1], 'bicep-curl');
+  assert.notEqual(gym.exerciseIds[0], 'bicep-curl');
+  assert.deepEqual(gym.exerciseTargets['bicep-curl'], plan.exerciseTargets['bicep-curl']);
+  assert.deepEqual(gym.exerciseTargets[gym.exerciseIds[0]], plan.exerciseTargets['bottle-biceps-curl']);
+});
+
+test('a home date override adapts its household equipment and returns exactly without replacing the gym split', () => {
+  const original = workspace();
+  const homeMonday = {
+    ...customWeek()[0], title: 'My bottle curls this Monday', focus: 'Biceps · Core', muscleGroups: ['Biceps', 'Core'],
+    exerciseIds: ['bottle-hammer-curl', 'plank'],
+    exerciseTargets: {
+      'bottle-hammer-curl': { sets: 2, reps: '14', unit: 'reps', restSeconds: 45 },
+      plank: { sets: 3, reps: '35', unit: 'sec', restSeconds: 30 },
+    },
+    exerciseVideoLinks: {},
+  };
+  const atHome = saveDatePlan(changeTrainingLocation(original, { trainingPlace: 'home' }), { date: dates[0], plan: homeMonday, trainingPlace: 'home', level: 'beginner' });
+  const atGym = changeTrainingLocation(normalizeWorkspace(clone(atHome)), { trainingPlace: 'gym' });
+  const gymMonday = resolveWeekPlans(options(atGym))[0];
+  assert.equal(gymMonday.title, homeMonday.title);
+  assert.deepEqual(gymMonday.exerciseIds, ['hammer-curl', 'plank']);
+  assert.deepEqual(gymMonday.exerciseTargets['hammer-curl'], homeMonday.exerciseTargets['bottle-hammer-curl']);
+  assert.deepEqual(gymMonday.exerciseTargets.plank, homeMonday.exerciseTargets.plank);
+  assert.deepEqual(resolveBaseWeekPlans(options(atGym)), original.weeklyPlans['gym:beginner']);
+  assert.deepEqual(resolveWeekPlans(options(atGym, nextDates)), original.weeklyPlans['gym:beginner']);
+  assert.deepEqual(resolveWeekPlans(options(changeTrainingLocation(atGym, { trainingPlace: 'home' })))[0], homeMonday);
+});
+
 test('substitutions keep compatible targets, recalculate duration, and remove machine-specific tutorials', () => {
   const plan = freeze(customWeek()[0]);
   const home = adaptPlanForLocation(plan, 'home');
@@ -276,7 +418,11 @@ test('a date-only alternative uses the adapted canonical workout despite older s
   const reloaded = normalizeWorkspace(clone(saved));
   assert.deepEqual(resolveWeekPlans(options(reloaded)), after);
   const atGym = changeTrainingLocation(reloaded, { trainingPlace: 'gym' });
-  assert.deepEqual(resolveWeekPlans(options(atGym))[0], after[0]);
+  const gymMonday = resolveWeekPlans(options(atGym))[0];
+  assertSameSchedule([after[0]], [gymMonday], 'gym');
+  assert.deepEqual(gymMonday.exerciseIds, [swap.replacementId, 'dumbbell-row', 'plank']);
+  assert.deepEqual(gymMonday.exerciseTargets['dumbbell-row'], after[0].exerciseTargets['backpack-row']);
+  assert.deepEqual(resolveWeekPlans(options(changeTrainingLocation(atGym, { trainingPlace: 'home' })))[0], after[0]);
   assert.deepEqual(resolveBaseWeekPlans(options(atGym)), original.weeklyPlans['gym:beginner']);
 });
 
@@ -312,8 +458,18 @@ test('a recurring alternative materializes the displayed split and date edits in
   const reloaded = normalizeWorkspace(clone(saved));
   assert.deepEqual(resolveWeekPlans(options(reloaded, nextDates)), afterNext);
   const atGym = changeTrainingLocation(reloaded, { trainingPlace: 'gym' });
-  assert.deepEqual(resolveBaseWeekPlans(options(atGym)), afterBase, 'an explicit weekly edit becomes the routine in both locations');
-  assert.deepEqual(resolveWeekPlans(options(atGym, nextDates)), afterNext);
+  const gymBase = resolveBaseWeekPlans(options(atGym));
+  const gymNext = resolveWeekPlans(options(atGym, nextDates));
+  assertSameSchedule(afterBase, gymBase, 'gym');
+  assertSameSchedule(afterNext, gymNext, 'gym');
+  assert.deepEqual(gymBase[0].exerciseIds, [swap.replacementId, 'dumbbell-row', 'single-arm-dumbbell-row']);
+  assert.deepEqual(gymNext[1].exerciseIds, ['bicep-curl']);
+  afterNext.forEach((plan, day) => plan.exerciseIds.forEach((id, slot) => {
+    assert.deepEqual(getExerciseTarget(gymNext[day], catalog.get(gymNext[day].exerciseIds[slot])), getExerciseTarget(plan, catalog.get(id)));
+  }));
+  const backHome = changeTrainingLocation(atGym, { trainingPlace: 'home' });
+  assert.deepEqual(resolveBaseWeekPlans(options(backHome)), afterBase, 'the edited home routine remains the canonical source');
+  assert.deepEqual(resolveWeekPlans(options(backHome, nextDates)), afterNext);
 });
 
 test('a beginner location switch does not pin unrelated legacy levels to the gym', () => {

@@ -11,7 +11,7 @@
 .goal-plan-choice { padding: 0; margin: 0; min-width: 0; border: 0; }
 .goal-plan-choice legend { padding: 0; font-size: 14px; font-weight: 650; color: #526847; }
 .goal-plan-choice > p { font-size: 12px; line-height: 1.8; color: #8c9b7b; margin: 6px 0 12px; }
-.goal-plan-choice > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.goal-plan-choice > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .goal-plan-choice label { display: flex; align-items: flex-start; gap: 9px; padding: 13px; border: 1px solid #e0e8d5; border-radius: 8px; cursor: pointer; }
 .goal-plan-choice label:has(input:checked) { background: #f2f6ea; border-color: #a8c18d; }
 .goal-plan-choice input { accent-color: #7b9a5b; width: 15px; height: 15px; margin: 2px 0 0; flex-shrink: 0; }

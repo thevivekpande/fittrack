@@ -159,7 +159,11 @@ function validateWeeklyPlans(values) {
         : Array.isArray(value.muscleGroups) ? unique(value.muscleGroups) : null;
       if (!groups?.length || groups.some((group) => !muscleGroups.has(group))) return null;
       if (!plan.exerciseIds.length && (groups.length !== 1 || groups[0] !== 'Mobility')) return null;
-      return { ...plan, day, muscleGroups: groups, custom: true };
+      // Saving a generated schedule (Keep or a rest-day change) does not turn
+      // its exercise choices into deliberate custom choices. Preserve false
+      // so location alternatives stay consistent after saving and reloading.
+      // Older saved weeks without this marker remain custom for compatibility.
+      return { ...plan, day, muscleGroups: groups, custom: value.custom !== false };
     });
     if (normalizedWeek.every(Boolean)) result[key] = normalizedWeek;
   }
